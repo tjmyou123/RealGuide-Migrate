@@ -59,8 +59,9 @@ $lblApp = New-Ctl Label @{ Text = ''; Location = (Pt 430 161); Size = (Sz 426 20
 # --- Tabs
 $tabs = New-Ctl TabControl @{ Location = (Pt 10 204); Size = (Sz 866 215); Anchor = 'Top,Left,Right' } $form
 $tabBackup = New-Ctl TabPage @{ Text = '  1. Backup (may cu)  ' }; $tabs.TabPages.Add($tabBackup)
-$tabNew    = New-Ctl TabPage @{ Text = '  2. May moi: junction + khoi phuc  ' }; $tabs.TabPages.Add($tabNew)
-$tabMaint  = New-Ctl TabPage @{ Text = '  3. Bao tri / kiem tra  ' }; $tabs.TabPages.Add($tabMaint)
+$tabExist  = New-Ctl TabPage @{ Text = '  2. Thu vien co san -> USB  ' }; $tabs.TabPages.Add($tabExist)
+$tabNew    = New-Ctl TabPage @{ Text = '  3. May moi: junction + khoi phuc  ' }; $tabs.TabPages.Add($tabNew)
+$tabMaint  = New-Ctl TabPage @{ Text = '  4. Bao tri / kiem tra  ' }; $tabs.TabPages.Add($tabMaint)
 
 # Tab 1
 New-Ctl Label @{ Text = 'Thu muc dich (USB / o ngoai):'; Location = (Pt 12 16); AutoSize = $true } $tabBackup | Out-Null
@@ -72,7 +73,21 @@ $chkBkClose = New-Ctl CheckBox @{ Text = 'Tu dong dong RealGUIDE truoc khi backu
 $btnBackup = New-Ctl Button @{ Text = 'BAT DAU BACKUP'; Location = (Pt 12 150); Size = (Sz 200 30); Font = $boldFont } $tabBackup
 New-Ctl Label @{ Text = 'Ket qua: <dich>\RealGuideLibrary-<ngay-gio>\ gom thu vien + manifest.json + ban sao bo cong cu nay.'; Location = (Pt 225 157); AutoSize = $true; ForeColor = 'DimGray' } $tabBackup | Out-Null
 
-# Tab 2
+# Tab 2 - thu vien (backup) co san
+New-Ctl Label @{ Text = 'Cac ban backup thu vien da co tren may / USB (tu quet moi o dia). Chon 1 dong roi bam nut ben duoi:'; Location = (Pt 12 10); AutoSize = $true } $tabExist | Out-Null
+$lvBk = New-Ctl ListView @{ View = 'Details'; FullRowSelect = $true; GridLines = $true; MultiSelect = $false; HideSelection = $false; Location = (Pt 12 30); Size = (Sz 830 108) } $tabExist
+[void]$lvBk.Columns.Add('Ngay tao', 120)
+[void]$lvBk.Columns.Add('Ten', 230)
+[void]$lvBk.Columns.Add('Dang', 75)
+[void]$lvBk.Columns.Add('Dung luong', 130)
+[void]$lvBk.Columns.Add('Duong dan', 270)
+$btnBkScan   = New-Ctl Button @{ Text = 'Quet lai'; Location = (Pt 12 146); Size = (Sz 100 30) } $tabExist
+$btnBkUse    = New-Ctl Button @{ Text = 'Dung cho may moi ->'; Location = (Pt 118 146); Size = (Sz 170 30); Font = $boldFont } $tabExist
+$btnBkExport = New-Ctl Button @{ Text = 'Copy sang USB / o ngoai...'; Location = (Pt 294 146); Size = (Sz 200 30) } $tabExist
+$btnBkOpen   = New-Ctl Button @{ Text = 'Mo thu muc'; Location = (Pt 500 146); Size = (Sz 110 30) } $tabExist
+New-Ctl Label @{ Text = '"Copy sang USB" chi sao chep backup da co (khong backup lai), kem bo cong cu.'; Location = (Pt 618 153); AutoSize = $true; ForeColor = 'DimGray' } $tabExist | Out-Null
+
+# Tab 3
 New-Ctl Label @{ Text = 'Noi luu du lieu tren may nay (junction se tro toi day):'; Location = (Pt 12 12); AutoSize = $true } $tabNew | Out-Null
 $txtRoot = New-Ctl TextBox @{ Location = (Pt 12 32); Size = (Sz 700 24) } $tabNew
 $btnRoot = New-Ctl Button @{ Text = 'Chon...'; Location = (Pt 720 30); Size = (Sz 90 26) } $tabNew
@@ -86,7 +101,7 @@ $btnSetupAll = New-Ctl Button @{ Text = 'THIET LAP MAY MOI (junction + khoi phuc
 $btnJunction = New-Ctl Button @{ Text = 'Chi tao junction'; Location = (Pt 380 145); Size = (Sz 150 30) } $tabNew
 $btnRestore  = New-Ctl Button @{ Text = 'Chi khoi phuc thu vien'; Location = (Pt 536 145); Size = (Sz 170 30) } $tabNew
 
-# Tab 3
+# Tab 4
 $btnFind   = New-Ctl Button @{ Text = 'Tim RealGUIDE luu o dau (quet ca o dia)'; Location = (Pt 12 16); Size = (Sz 280 30) } $tabMaint
 $btnVerify = New-Ctl Button @{ Text = 'Kiem tra junction + thu vien'; Location = (Pt 12 52); Size = (Sz 280 30) } $tabMaint
 $btnRepair = New-Ctl Button @{ Text = 'Va sleeve ket ("Polygon count is zero")'; Location = (Pt 12 88); Size = (Sz 280 30) } $tabMaint
@@ -167,6 +182,25 @@ function Refresh-Status {
     $status.Text = 'San sang.'
 }
 
+function Refresh-Backups {
+    $status.Text = 'Dang quet backup co san tren cac o dia...'; $form.Refresh()
+    $lvBk.Items.Clear()
+    $roots = @(); if ($txtRoot.Text) { $roots += (Join-Path $txtRoot.Text 'Backups') }
+    try { $list = @(Find-ExistingBackups -ExtraRoots $roots) } catch { Append-Log "Loi quet backup: $_`r`n" 'Salmon'; $list = @() }
+    foreach ($b in $list) {
+        $s = Get-DirStats $b.Path
+        $it = New-Object System.Windows.Forms.ListViewItem($b.Created.ToString('yyyy-MM-dd HH:mm'))
+        [void]$it.SubItems.Add($b.Name); [void]$it.SubItems.Add($b.Type)
+        [void]$it.SubItems.Add("$($s.Files) file, $(Format-Bytes $s.Bytes)"); [void]$it.SubItems.Add($b.Path)
+        $it.Tag = $b.Path
+        if ($b.Type -ne 'chuan') { $it.ForeColor = 'DarkOrange' }
+        [void]$lvBk.Items.Add($it)
+    }
+    if ($lvBk.Items.Count) { $lvBk.Items[0].Selected = $true }
+    $status.Text = "Tim thay $($list.Count) backup."
+}
+function Get-SelectedBackup { if ($lvBk.SelectedItems.Count) { $lvBk.SelectedItems[0].Tag } else { $null } }
+
 function Read-NewText {
     param([string]$File, [ref]$Pos)
     if (-not (Test-Path $File)) { return '' }
@@ -241,6 +275,25 @@ $btnBackup.Add_Click({
     if ($chkBkClose.Checked) { $a += '-CloseApp' }
     Invoke-Tool 'Backup-Library.ps1' $a 'Backup thu vien'
 })
+
+$btnBkScan.Add_Click({ Refresh-Backups })
+$btnBkUse.Add_Click({
+    $b = Get-SelectedBackup
+    if (-not $b) { Msg 'Chua chon backup nao trong danh sach.' 'Thieu thong tin' 'Warning'; return }
+    $txtBk.Text = $b; $tabs.SelectedTab = $tabNew
+    $status.Text = "Da chon backup: $b -> kiem tra 'Noi luu du lieu' roi bam THIET LAP MAY MOI."
+})
+$btnBkExport.Add_Click({
+    $b = Get-SelectedBackup
+    if (-not $b) { Msg 'Chua chon backup nao trong danh sach.' 'Thieu thong tin' 'Warning'; return }
+    $f = Pick-Folder 'Chon USB / o ngoai de chep backup sang' ''
+    if (-not $f) { return }
+    $s = Get-DirStats $b
+    if (-not (Ask "Chep backup:`n$b`n($(Format-Bytes $s.Bytes))`n`nsang: $f ?")) { return }
+    Invoke-Tool 'Export-Backup.ps1' @('-BackupPath', (Q $b), '-Destination', (Q $f)) 'Copy backup sang o ngoai'
+})
+$btnBkOpen.Add_Click({ $b = Get-SelectedBackup; if ($b) { Start-Process explorer.exe $b } })
+$tabs.Add_SelectedIndexChanged({ if ($tabs.SelectedTab -eq $tabExist -and $lvBk.Items.Count -eq 0) { Refresh-Backups } })
 
 $btnSetupAll.Add_Click({
     if (-not $txtRoot.Text) { Msg 'Chua nhap noi luu du lieu.' 'Thieu thong tin' 'Warning'; return }

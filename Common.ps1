@@ -23,8 +23,8 @@ function Write-Err  { param([string]$Msg) Write-Host "  [LOI]  $Msg" -Foreground
 #   3. Quet nhanh cac o dia khac (do sau 2) tim ban sao/du lieu da chuyen tay
 # Neu khong tim thay -> dung ten mac dinh (Found=$false) de van tao duoc junction truoc khi cai app.
 # ---------------------------------------------------------------------------
-function Test-LibraryFolder { param([string]$P) (Test-Path "$P\sleeves.imp") -or (Test-Path "$P\stldb") -or (Test-Path "$P\asset_cache") }
-function Test-PatientDbFolder { param([string]$P) (Test-Path "$P\xmlStudiesList.xml") -or (Test-Path "$P\Storage") }
+function Test-LibraryFolder { param([string]$P) (Test-Path -LiteralPath "$P\sleeves.imp") -or (Test-Path -LiteralPath "$P\stldb") -or (Test-Path -LiteralPath "$P\asset_cache") }
+function Test-PatientDbFolder { param([string]$P) (Test-Path -LiteralPath "$P\xmlStudiesList.xml") -or (Test-Path -LiteralPath "$P\Storage") }
 
 function Resolve-LinkTarget {
     param([string]$Path)
@@ -72,10 +72,10 @@ function Find-RealGuidePaths {
     if ($ScanDrives) {
         $roots = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -and (Test-Path $_.Root) -and $_.DisplayRoot -eq $null } | ForEach-Object Root
         foreach ($root in $roots) {
-            $hits = Get-ChildItem $root -Directory -Recurse -Depth 2 -Force -ErrorAction SilentlyContinue |
+            $hits = Get-ChildItem -LiteralPath $root -Directory -Recurse -Depth 2 -Force -ErrorAction SilentlyContinue |
                     Where-Object { $_.Name -match '^Real ?guide' -and $_.FullName -notlike "$env:APPDATA*" -and $_.FullName -notlike "$env:LOCALAPPDATA*" }
             foreach ($h in $hits) {
-                $kind = if (Test-LibraryFolder $h.FullName) { 'Library' } elseif (Test-PatientDbFolder $h.FullName) { 'PatientDb' } elseif (Test-Path "$($h.FullName)\manifest.json") { 'Backup' } elseif (Test-Path "$($h.FullName)\bin\RealGUIDE.exe") { 'AppDir' } else { $null }
+                $kind = if (Test-LibraryFolder $h.FullName) { 'Library' } elseif (Test-PatientDbFolder $h.FullName) { 'PatientDb' } elseif (Test-Path -LiteralPath "$($h.FullName)\manifest.json") { 'Backup' } elseif (Test-Path -LiteralPath "$($h.FullName)\bin\RealGUIDE.exe") { 'AppDir' } else { $null }
                 if ($kind) { $r.Extra += [pscustomobject]@{ Kind = $kind; Path = $h.FullName } }
             }
         }
@@ -99,6 +99,42 @@ function Find-RealGuidePaths {
 function Get-RealGuidePaths {
     if (-not $script:RgPaths) { $script:RgPaths = Find-RealGuidePaths }
     $script:RgPaths
+}
+
+# Tim cac ban backup thu vien co san tren may (USB, o ngoai, o du lieu)
+#   - Dang chuan: <X>\RealGuideLibrary-<ngay>\{manifest.json, RealguideZimmerBiomet\}
+#   - Dang cu (phang): <X>\LibraryBackup-<ngay>\{stldb, sleeves.imp}
+function Find-ExistingBackups {
+    param([string[]]$ExtraRoots = @())
+    $roots = @(Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -and (Test-Path $_.Root) -and -not $_.DisplayRoot } | ForEach-Object Root)
+    $roots += $ExtraRoots | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+    # Loai thu vien DANG DUNG (khong phai backup)
+    $rg = Get-RealGuidePaths
+    $live = @($rg.Library, $rg.Targets['Library']) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\').ToLower() }
+    $seen = @{}
+    foreach ($l in $live) { $seen[$l] = $true }
+    $out = @()
+    foreach ($root in $roots) {
+        # Loc theo TEN truoc (nhanh), roi moi kiem tra noi dung
+        $dirs = Get-ChildItem -LiteralPath $root -Directory -Recurse -Depth 2 -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match 'realguide|librarybackup' -and $_.FullName -notmatch '\\(Windows|Program Files|Program Files \(x86\)|AppData)\\' }
+        foreach ($d in $dirs) {
+            $full = $d.FullName
+            if ($seen[$full.ToLower()]) { continue }
+            # Bo qua thu muc con RealguideZimmerBiomet nam TRONG mot backup chuan (da tinh o cha)
+            if ($d.Parent -and (Test-Path -LiteralPath (Join-Path $d.Parent.FullName 'manifest.json'))) { continue }
+            $isStd = (Test-Path -LiteralPath (Join-Path $full 'manifest.json')) -and (Test-Path -LiteralPath (Join-Path $full 'RealguideZimmerBiomet'))
+            $isOld = (Test-Path -LiteralPath (Join-Path $full 'stldb')) -and ((Test-Path -LiteralPath (Join-Path $full 'sleeves.imp')) -or (Test-Path -LiteralPath (Join-Path $full 'models.imp')))
+            if (-not ($isStd -or $isOld)) { continue }
+            $seen[$full.ToLower()] = $true
+            $created = $d.LastWriteTime; $machine = ''
+            if ($isStd) {
+                try { $m = Get-Content -LiteralPath (Join-Path $full 'manifest.json') -Raw | ConvertFrom-Json; $created = [datetime]$m.created; $machine = $m.sourceMachine } catch {}
+            }
+            $out += [pscustomobject]@{ Name = $d.Name; Path = $full; Type = $(if ($isStd) { 'chuan' } else { 'cu (phang)' }); Created = $created; Machine = $machine; Drive = $d.PSDrive.Name }
+        }
+    }
+    $out | Sort-Object Created -Descending
 }
 
 # Bang anh xa: duong dan ma RealGUIDE ghi cung (Link) -> noi luu that (Target)
@@ -148,8 +184,8 @@ function Invoke-Robocopy {
 # Thong ke so file / dung luong mot thu muc
 function Get-DirStats {
     param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path $Path)) { return [pscustomobject]@{ Files = 0; Bytes = 0 } }
-    $m = Get-ChildItem $Path -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum
+    if (-not (Test-Path -LiteralPath $Path)) { return [pscustomobject]@{ Files = 0; Bytes = 0 } }
+    $m = Get-ChildItem -LiteralPath $Path -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum
     [pscustomobject]@{ Files = [int]$m.Count; Bytes = [int64]($m.Sum) }
 }
 

@@ -13,8 +13,9 @@ Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
 
 - **Trạng thái**: tự tìm 4 vị trí dữ liệu, cho biết đang là junction (xanh) hay thư mục thậ t trên C: (cam), dung lượng, app cài ở đâu.
 - **Tab 1 Backup (máy cũ)**: chọn đích, tùy chọn kèm DB bệnh nhân / cấu hình → *BẮt đầu backup*.
-- **Tab 2 Máy mới**: chọn nơi lưu dữ liệu + thư mục backup → *Thiết lậ p máy mới* (hoặc chỉ tạo junction / chỉ khôi phục).
-- **Tab 3 Bảo trì**: tìm đường dẫn, kiểm tra, vá sleeve, gỡ junction trước khi Uninstall.
+- **Tab 2 Thư viện có sẵn → USB**: tự quét mọi ổ đĩa tìm các bản backup đã có (cả dạng cũ phẳng `LibraryBackup-*`), chọn 1 dòng → *Dùng cho máy mới* (điền sẵn vào Tab 3) hoặc *Copy sang USB / ổ ngoài* (sao chép nguyên backup + bộ công cụ, không backup lại từ app).
+- **Tab 3 Máy mới**: chọn nơi lưu dữ liệu + thư mục backup → *Thiết lậ p máy mới* (hoặc chỉ tạo junction / chỉ khôi phục).
+- **Tab 4 Bảo trì**: tìm đường dẫn, kiểm tra, vá sleeve, gỡ junction trước khi Uninstall.
 - **Log** đen ở dưới hiện tiến trình thời gian thực; thanh chạy khi đang bậ n; mọi tác vụ nguy hiểm đều hỏi xác nhậ n.
 
 GUI chỉ là lớp vỏ gọi các script bên dưới (chạy tiến trình con, không treo cửa sổ), nên dùng dòng lệnh hay GUI đều cho kết quả như nhau.
@@ -56,6 +57,7 @@ Script sẽ: đóng app → di chuyển dữ liệu C: hiện có sang `DataRoot
 | `RealGuide-Migrate.cmd` + `RealGuide-Migrate.GUI.ps1` | **Giao diện** gộp toàn bộ chức năng |
 | `Find-RealGuide.ps1/.cmd` | **Tự tìm** RealGUIDE lưu file ở đâu (app, thư viện, DB, cache, junction; `-ScanDrives` quét thêm ổ đĩa) |
 | `Backup-Library.ps1/.cmd` | Backup thư viện (+ tùy chọn DB bệnh nhân, cấu hình) |
+| `Export-Backup.ps1` | Liệt kê backup có sẵn (`-List`) / sao chép 1 backup sang USB kèm bộ công cụ |
 | `Setup-Junctions.ps1` | Tạo/gỡ (`-Undo`) 4 junction, di chuyển dữ liệu, test ghi xuyên |
 | `Restore-Library.ps1` | Khôi phục thư viện từ backup (robocopy /MIR, xóa rác 0-byte) |
 | `Setup-NewMachine.ps1/.cmd` | Gộp Setup-Junctions + Restore-Library + Verify |
@@ -82,6 +84,10 @@ Nếu chưa cài app (máy mới) → dùng tên mặc định (`RealguideZimmer
 | `%APPDATA%\RealGUIDE50-DB` | `<DataRoot>\RealGUIDE50-DB` |
 | `%LOCALAPPDATA%\RealGUIDE` | `<DataRoot>\RealGUIDE-QmlCache` |
 | `C:\NNT` | `<DataRoot>\NNT` |
+
+## Dữ liệu không nằm trong repo
+
+Repo này **chỉ chứa công cụ**. Thư viện RealGUIDE (~8.4 GB: `stldb` implant/sleeve 1.1 GB, `stlcaddb` CAD 3.7 GB, `asset_cache` gói tải về 3.6 GB) và dữ liệu bệnh nhân được lưu riêng trên USB / ổ ngoài bằng Tab 1 hoặc Tab 2 của GUI; `.gitignore` chặn mọi file dữ liệu (`*.stl`, `*.imp`, `RealguideZimmerBiomet/`, `RealGUIDE50-DB/`…).
 
 ## Cảnh báo quan trọng
 
