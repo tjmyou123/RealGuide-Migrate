@@ -20,6 +20,8 @@ Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
 
 GUI chỉ là lớp vỏ gọi các script bên dưới (chạy tiến trình con, không treo cửa sổ), nên dùng dòng lệnh hay GUI đều cho kết quả như nhau.
 
+Toàn bộ chữ trên giao diện (tiếng Việt có dấu) nằm trong `Strings.vi.txt` (UTF-8, dạng `Khóa=Giá trị`, `\n` = xuống dòng). Muốn đổi câu chữ hoặc dịch sang ngôn ngữ khác chỉ cần sửa file này, không cần đụng code. Log của các script con vẫn là tiếng Việt không dấu để hiển thị đúng trên mọi console.
+
 ## Quy trình 3 bước (dòng lệnh)
 
 ### 1. Máy cũ – backup

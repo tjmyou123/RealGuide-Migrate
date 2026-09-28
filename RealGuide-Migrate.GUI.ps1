@@ -13,6 +13,12 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')
 
+# Chuoi giao dien tieng Viet co dau: doc tu Strings.vi.txt (UTF-8). File .ps1 nay giu ASCII de PS 5.1 doc dung.
+$strFile = Join-Path $PSScriptRoot 'Strings.vi.txt'
+if (-not (Test-Path -LiteralPath $strFile)) { [System.Windows.Forms.MessageBox]::Show("Thieu file $strFile", 'RealGuide-Migrate', 'OK', 'Error') | Out-Null; exit 1 }
+$S = Get-Content -LiteralPath $strFile -Raw -Encoding UTF8 | ConvertFrom-StringData
+function T { param([string]$Key, [object[]]$Vals = @()) $v = $script:S[$Key]; if ($null -eq $v) { return "[$Key]" }; if ($Vals.Count) { $v -f $Vals } else { $v } }
+
 # ---------------------------------------------------------------- helpers
 function New-Ctl {
     param([string]$Type, [hashtable]$P = @{}, $Parent)
@@ -35,86 +41,83 @@ function Pick-Folder {
     return $null
 }
 function Msg  { param($Text, $Title = 'RealGuide-Migrate', $Icon = 'Information') [System.Windows.Forms.MessageBox]::Show($form, $Text, $Title, 'OK', $Icon) | Out-Null }
-function Ask  { param($Text, $Title = 'Xac nhan') ([System.Windows.Forms.MessageBox]::Show($form, $Text, $Title, 'YesNo', 'Question') -eq 'Yes') }
+function Ask  { param($Text, $Title = $S.Confirm) ([System.Windows.Forms.MessageBox]::Show($form, $Text, $Title, 'YesNo', 'Question') -eq 'Yes') }
 
 # ---------------------------------------------------------------- form
 $form = New-Ctl Form @{
-    Text = "RealGuide-Migrate $script:ToolVersion" + $(if (-not $isAdmin) { '   [KHONG co quyen Admin - nen chay qua RealGuide-Migrate.cmd]' })
+    Text = (T Title $script:ToolVersion) + $(if (-not $isAdmin) { $S.NoAdmin })
     Size = (Sz 900 740); MinimumSize = (Sz 900 740); StartPosition = 'CenterScreen'
     Font = (New-Object System.Drawing.Font('Segoe UI', 9))
 }
 
 # --- Trang thai
-$grpStatus = New-Ctl GroupBox @{ Text = ' Trang thai RealGUIDE tren may nay '; Location = (Pt 10 8); Size = (Sz 866 190); Anchor = 'Top,Left,Right' } $form
+$grpStatus = New-Ctl GroupBox @{ Text = $S.GrpStatus; Location = (Pt 10 8); Size = (Sz 866 190); Anchor = 'Top,Left,Right' } $form
 $lv = New-Ctl ListView @{ View = 'Details'; FullRowSelect = $true; GridLines = $true; Location = (Pt 10 22); Size = (Sz 846 128); Anchor = 'Top,Left,Right' } $grpStatus
-[void]$lv.Columns.Add('Hang muc', 150)
-[void]$lv.Columns.Add('Duong dan RealGUIDE dung', 300)
-[void]$lv.Columns.Add('Thuc te luu tai', 260)
-[void]$lv.Columns.Add('Dung luong', 120)
-$btnRefresh = New-Ctl Button @{ Text = 'Lam moi'; Location = (Pt 10 156); Size = (Sz 100 26) } $grpStatus
-$btnOpenLib = New-Ctl Button @{ Text = 'Mo thu muc thu vien'; Location = (Pt 116 156); Size = (Sz 150 26) } $grpStatus
-$btnOpenData = New-Ctl Button @{ Text = 'Mo thu muc du lieu'; Location = (Pt 272 156); Size = (Sz 150 26) } $grpStatus
+[void]$lv.Columns.Add($S.ColItem, 150)
+[void]$lv.Columns.Add($S.ColLink, 300)
+[void]$lv.Columns.Add($S.ColTarget, 260)
+[void]$lv.Columns.Add($S.ColSize, 120)
+$btnRefresh = New-Ctl Button @{ Text = $S.BtnRefresh; Location = (Pt 10 156); Size = (Sz 100 26) } $grpStatus
+$btnOpenLib = New-Ctl Button @{ Text = $S.BtnOpenLib; Location = (Pt 116 156); Size = (Sz 150 26) } $grpStatus
+$btnOpenData = New-Ctl Button @{ Text = $S.BtnOpenData; Location = (Pt 272 156); Size = (Sz 150 26) } $grpStatus
 $lblApp = New-Ctl Label @{ Text = ''; Location = (Pt 430 161); Size = (Sz 426 20); ForeColor = 'DimGray'; Anchor = 'Top,Left,Right' } $grpStatus
 
 # --- Tabs
 $tabs = New-Ctl TabControl @{ Location = (Pt 10 204); Size = (Sz 866 215); Anchor = 'Top,Left,Right' } $form
-$tabBackup = New-Ctl TabPage @{ Text = '  1. Backup (may cu)  ' }; $tabs.TabPages.Add($tabBackup)
-$tabExist  = New-Ctl TabPage @{ Text = '  2. Thu vien co san -> USB  ' }; $tabs.TabPages.Add($tabExist)
-$tabNew    = New-Ctl TabPage @{ Text = '  3. May moi: junction + khoi phuc  ' }; $tabs.TabPages.Add($tabNew)
-$tabMaint  = New-Ctl TabPage @{ Text = '  4. Bao tri / kiem tra  ' }; $tabs.TabPages.Add($tabMaint)
+$tabBackup = New-Ctl TabPage @{ Text = $S.Tab1 }; $tabs.TabPages.Add($tabBackup)
+$tabExist  = New-Ctl TabPage @{ Text = $S.Tab2 }; $tabs.TabPages.Add($tabExist)
+$tabNew    = New-Ctl TabPage @{ Text = $S.Tab3 }; $tabs.TabPages.Add($tabNew)
+$tabMaint  = New-Ctl TabPage @{ Text = $S.Tab4 }; $tabs.TabPages.Add($tabMaint)
 
 # Tab 1
-New-Ctl Label @{ Text = 'Thu muc dich (USB / o ngoai):'; Location = (Pt 12 16); AutoSize = $true } $tabBackup | Out-Null
+New-Ctl Label @{ Text = $S.LblDest; Location = (Pt 12 16); AutoSize = $true } $tabBackup | Out-Null
 $txtDest = New-Ctl TextBox @{ Location = (Pt 12 36); Size = (Sz 700 24) } $tabBackup
-$btnDest = New-Ctl Button @{ Text = 'Chon...'; Location = (Pt 720 34); Size = (Sz 90 26) } $tabBackup
-$chkBkDb    = New-Ctl CheckBox @{ Text = 'Kem DB benh nhan (RealGUIDE50-DB - co the rat lon)'; Location = (Pt 12 70); AutoSize = $true } $tabBackup
-$chkBkCfg   = New-Ctl CheckBox @{ Text = 'Kem cau hinh may (*.ini, *.set, *.dat, *.xlb)'; Location = (Pt 12 94); AutoSize = $true } $tabBackup
-$chkBkClose = New-Ctl CheckBox @{ Text = 'Tu dong dong RealGUIDE truoc khi backup'; Location = (Pt 12 118); AutoSize = $true; Checked = $true } $tabBackup
-$btnBackup = New-Ctl Button @{ Text = 'BAT DAU BACKUP'; Location = (Pt 12 150); Size = (Sz 200 30); Font = $boldFont } $tabBackup
-New-Ctl Label @{ Text = 'Ket qua: <dich>\RealGuideLibrary-<ngay-gio>\ gom thu vien + manifest.json + ban sao bo cong cu nay.'; Location = (Pt 225 157); AutoSize = $true; ForeColor = 'DimGray' } $tabBackup | Out-Null
+$btnDest = New-Ctl Button @{ Text = $S.BtnBrowse; Location = (Pt 720 34); Size = (Sz 90 26) } $tabBackup
+$chkBkDb    = New-Ctl CheckBox @{ Text = $S.ChkBkDb; Location = (Pt 12 70); AutoSize = $true } $tabBackup
+$chkBkCfg   = New-Ctl CheckBox @{ Text = $S.ChkBkCfg; Location = (Pt 12 94); AutoSize = $true } $tabBackup
+$chkBkClose = New-Ctl CheckBox @{ Text = $S.ChkBkClose; Location = (Pt 12 118); AutoSize = $true; Checked = $true } $tabBackup
+$btnBackup = New-Ctl Button @{ Text = $S.BtnBackup; Location = (Pt 12 150); Size = (Sz 200 30); Font = $boldFont } $tabBackup
+New-Ctl Label @{ Text = $S.HintBackup; Location = (Pt 225 157); AutoSize = $true; ForeColor = 'DimGray' } $tabBackup | Out-Null
 
 # Tab 2 - thu vien (backup) co san
-New-Ctl Label @{ Text = 'Cac ban backup thu vien da co tren may / USB (tu quet moi o dia). Chon 1 dong roi bam nut ben duoi:'; Location = (Pt 12 10); AutoSize = $true } $tabExist | Out-Null
+New-Ctl Label @{ Text = $S.LblExist; Location = (Pt 12 10); AutoSize = $true } $tabExist | Out-Null
 $lvBk = New-Ctl ListView @{ View = 'Details'; FullRowSelect = $true; GridLines = $true; MultiSelect = $false; HideSelection = $false; Location = (Pt 12 30); Size = (Sz 830 108) } $tabExist
-[void]$lvBk.Columns.Add('Ngay tao', 120)
-[void]$lvBk.Columns.Add('Ten', 230)
-[void]$lvBk.Columns.Add('Dang', 75)
-[void]$lvBk.Columns.Add('Dung luong', 130)
-[void]$lvBk.Columns.Add('Duong dan', 270)
-$btnBkScan   = New-Ctl Button @{ Text = 'Quet lai'; Location = (Pt 12 146); Size = (Sz 100 30) } $tabExist
-$btnBkUse    = New-Ctl Button @{ Text = 'Dung cho may moi ->'; Location = (Pt 118 146); Size = (Sz 170 30); Font = $boldFont } $tabExist
-$btnBkExport = New-Ctl Button @{ Text = 'Copy sang USB / o ngoai...'; Location = (Pt 294 146); Size = (Sz 200 30) } $tabExist
-$btnBkOpen   = New-Ctl Button @{ Text = 'Mo thu muc'; Location = (Pt 500 146); Size = (Sz 110 30) } $tabExist
-New-Ctl Label @{ Text = '"Copy sang USB" chi sao chep backup da co (khong backup lai), kem bo cong cu.'; Location = (Pt 618 153); AutoSize = $true; ForeColor = 'DimGray' } $tabExist | Out-Null
+[void]$lvBk.Columns.Add($S.ColCreated, 120)
+[void]$lvBk.Columns.Add($S.ColName, 230)
+[void]$lvBk.Columns.Add($S.ColType, 75)
+[void]$lvBk.Columns.Add($S.ColSize, 130)
+[void]$lvBk.Columns.Add($S.ColPath, 270)
+$btnBkScan   = New-Ctl Button @{ Text = $S.BtnBkScan; Location = (Pt 12 146); Size = (Sz 100 30) } $tabExist
+$btnBkUse    = New-Ctl Button @{ Text = $S.BtnBkUse; Location = (Pt 118 146); Size = (Sz 170 30); Font = $boldFont } $tabExist
+$btnBkExport = New-Ctl Button @{ Text = $S.BtnBkExport; Location = (Pt 294 146); Size = (Sz 200 30) } $tabExist
+$btnBkOpen   = New-Ctl Button @{ Text = $S.BtnBkOpen; Location = (Pt 500 146); Size = (Sz 110 30) } $tabExist
+New-Ctl Label @{ Text = $S.HintExist; Location = (Pt 618 153); AutoSize = $true; ForeColor = 'DimGray' } $tabExist | Out-Null
 
 # Tab 3
-New-Ctl Label @{ Text = 'Noi luu du lieu tren may nay (junction se tro toi day):'; Location = (Pt 12 12); AutoSize = $true } $tabNew | Out-Null
+New-Ctl Label @{ Text = $S.LblRoot; Location = (Pt 12 12); AutoSize = $true } $tabNew | Out-Null
 $txtRoot = New-Ctl TextBox @{ Location = (Pt 12 32); Size = (Sz 700 24) } $tabNew
-$btnRoot = New-Ctl Button @{ Text = 'Chon...'; Location = (Pt 720 30); Size = (Sz 90 26) } $tabNew
-New-Ctl Label @{ Text = 'Thu muc backup can khoi phuc (RealGuideLibrary-<ngay-gio>, co manifest.json) - tu dien neu GUI mo tu trong backup:'; Location = (Pt 12 60); AutoSize = $true } $tabNew | Out-Null
+$btnRoot = New-Ctl Button @{ Text = $S.BtnBrowse; Location = (Pt 720 30); Size = (Sz 90 26) } $tabNew
+New-Ctl Label @{ Text = $S.LblBk; Location = (Pt 12 60); AutoSize = $true } $tabNew | Out-Null
 $txtBk = New-Ctl TextBox @{ Location = (Pt 12 80); Size = (Sz 700 24) } $tabNew
-$btnBk = New-Ctl Button @{ Text = 'Chon...'; Location = (Pt 720 78); Size = (Sz 90 26) } $tabNew
-$chkRsDb  = New-Ctl CheckBox @{ Text = 'Khoi phuc DB benh nhan'; Location = (Pt 12 110); AutoSize = $true } $tabNew
-$chkRsCfg = New-Ctl CheckBox @{ Text = 'Khoi phuc cau hinh may cu'; Location = (Pt 200 110); AutoSize = $true } $tabNew
-$chkSkipJ = New-Ctl CheckBox @{ Text = 'Khong tao junction (de du lieu tren C:)'; Location = (Pt 400 110); AutoSize = $true } $tabNew
-$btnSetupAll = New-Ctl Button @{ Text = 'THIET LAP MAY MOI (junction + khoi phuc + kiem tra)'; Location = (Pt 12 145); Size = (Sz 360 30); Font = $boldFont } $tabNew
-$btnJunction = New-Ctl Button @{ Text = 'Chi tao junction'; Location = (Pt 380 145); Size = (Sz 150 30) } $tabNew
-$btnRestore  = New-Ctl Button @{ Text = 'Chi khoi phuc thu vien'; Location = (Pt 536 145); Size = (Sz 170 30) } $tabNew
+$btnBk = New-Ctl Button @{ Text = $S.BtnBrowse; Location = (Pt 720 78); Size = (Sz 90 26) } $tabNew
+$chkRsDb  = New-Ctl CheckBox @{ Text = $S.ChkRsDb; Location = (Pt 12 110); AutoSize = $true } $tabNew
+$chkRsCfg = New-Ctl CheckBox @{ Text = $S.ChkRsCfg; Location = (Pt 200 110); AutoSize = $true } $tabNew
+$chkSkipJ = New-Ctl CheckBox @{ Text = $S.ChkSkipJ; Location = (Pt 400 110); AutoSize = $true } $tabNew
+$btnSetupAll = New-Ctl Button @{ Text = $S.BtnSetupAll; Location = (Pt 12 145); Size = (Sz 360 30); Font = $boldFont } $tabNew
+$btnJunction = New-Ctl Button @{ Text = $S.BtnJunction; Location = (Pt 380 145); Size = (Sz 150 30) } $tabNew
+$btnRestore  = New-Ctl Button @{ Text = $S.BtnRestore; Location = (Pt 536 145); Size = (Sz 170 30) } $tabNew
 
 # Tab 4
-$btnFind   = New-Ctl Button @{ Text = 'Tim RealGUIDE luu o dau (quet ca o dia)'; Location = (Pt 12 16); Size = (Sz 280 30) } $tabMaint
-$btnVerify = New-Ctl Button @{ Text = 'Kiem tra junction + thu vien'; Location = (Pt 12 52); Size = (Sz 280 30) } $tabMaint
-$btnRepair = New-Ctl Button @{ Text = 'Va sleeve ket ("Polygon count is zero")'; Location = (Pt 12 88); Size = (Sz 280 30) } $tabMaint
-$btnUndo   = New-Ctl Button @{ Text = 'GO JUNCTION - dua du lieu ve C: (truoc khi Uninstall)'; Location = (Pt 12 134); Size = (Sz 380 30); ForeColor = 'Firebrick' } $tabMaint
-New-Ctl Label @{
-    Text = "Luu y:`r`n- Va sleeve: chay KHI RealGUIDE dang mo, truoc khi mo ca.`r`n- Go junction: BAT BUOC lam truoc khi chay Uninstall.exe, neu khong trinh go cai dat co the xoa lan sang du lieu that."
-    Location = (Pt 310 16); Size = (Sz 530 110); ForeColor = 'DimGray'
-} $tabMaint | Out-Null
+$btnFind   = New-Ctl Button @{ Text = $S.BtnFind; Location = (Pt 12 16); Size = (Sz 280 30) } $tabMaint
+$btnVerify = New-Ctl Button @{ Text = $S.BtnVerify; Location = (Pt 12 52); Size = (Sz 280 30) } $tabMaint
+$btnRepair = New-Ctl Button @{ Text = $S.BtnRepair; Location = (Pt 12 88); Size = (Sz 280 30) } $tabMaint
+$btnUndo   = New-Ctl Button @{ Text = $S.BtnUndo; Location = (Pt 12 134); Size = (Sz 380 30); ForeColor = 'Firebrick' } $tabMaint
+New-Ctl Label @{ Text = $S.HintMaint; Location = (Pt 310 16); Size = (Sz 530 110); ForeColor = 'DimGray' } $tabMaint | Out-Null
 
 # --- Log
 $log = New-Ctl RichTextBox @{ Location = (Pt 10 426); Size = (Sz 866 240); ReadOnly = $true; BackColor = 'Black'; ForeColor = 'Gainsboro'; Font = (New-Object System.Drawing.Font('Consolas', 9)); Anchor = 'Top,Bottom,Left,Right'; WordWrap = $false; ScrollBars = 'Both' } $form
 $progress = New-Ctl ProgressBar @{ Location = (Pt 10 672); Size = (Sz 200 20); Anchor = 'Bottom,Left'; MarqueeAnimationSpeed = 30 } $form
-$status = New-Ctl Label @{ Text = 'San sang.'; Location = (Pt 220 674); Size = (Sz 656 20); Anchor = 'Bottom,Left,Right' } $form
+$status = New-Ctl Label @{ Text = $S.Ready; Location = (Pt 220 674); Size = (Sz 656 20); Anchor = 'Bottom,Left,Right' } $form
 
 # ---------------------------------------------------------------- logic
 $script:Paths = $null
@@ -141,32 +144,32 @@ function Get-DataRootGuess {
 }
 
 function Refresh-Status {
-    $status.Text = 'Dang tim duong dan RealGUIDE...'; $form.Refresh()
-    try { $script:Paths = Find-RealGuidePaths } catch { Append-Log "Loi tim duong dan: $_`r`n" 'Salmon'; return }
+    $status.Text = $S.Finding; $form.Refresh()
+    try { $script:Paths = Find-RealGuidePaths } catch { Append-Log ((T ErrFind $_) + "`r`n") 'Salmon'; return }
     $p = $script:Paths
     $lv.Items.Clear()
     $rows = @(
-        @('Thu vien implant/sleeve', $p.Library,   'Library'),
-        @('DB benh nhan',            $p.PatientDb, 'PatientDb'),
-        @('QML cache',               $p.QmlCache,  'QmlCache'),
-        @('NNT ini',                 $p.NNT,       'NNT')
+        @($S.RowLibrary,   $p.Library,   'Library'),
+        @($S.RowPatientDb, $p.PatientDb, 'PatientDb'),
+        @($S.RowQml,       $p.QmlCache,  'QmlCache'),
+        @($S.RowNnt,       $p.NNT,       'NNT')
     )
     foreach ($r in $rows) {
         $name, $link, $key = $r
         $it = New-Object System.Windows.Forms.ListViewItem($name)
         [void]$it.SubItems.Add($link)
         if (-not (Test-Path $link)) {
-            [void]$it.SubItems.Add('(chua co)'); [void]$it.SubItems.Add('-'); $it.ForeColor = 'Gray'
+            [void]$it.SubItems.Add($S.StNotExist); [void]$it.SubItems.Add('-'); $it.ForeColor = 'Gray'
         } elseif ($p.Targets[$key]) {
-            $s = Get-DirStats $p.Targets[$key]
-            [void]$it.SubItems.Add("junction -> $($p.Targets[$key])"); [void]$it.SubItems.Add("$($s.Files) file, $(Format-Bytes $s.Bytes)"); $it.ForeColor = 'DarkGreen'
+            $st = Get-DirStats $p.Targets[$key]
+            [void]$it.SubItems.Add((T StJunction $p.Targets[$key])); [void]$it.SubItems.Add((T FilesSize $st.Files, (Format-Bytes $st.Bytes))); $it.ForeColor = 'DarkGreen'
         } else {
-            $s = Get-DirStats $link
-            [void]$it.SubItems.Add('thu muc that (tren C:)'); [void]$it.SubItems.Add("$($s.Files) file, $(Format-Bytes $s.Bytes)"); $it.ForeColor = 'DarkOrange'
+            $st = Get-DirStats $link
+            [void]$it.SubItems.Add($S.StRealDir); [void]$it.SubItems.Add((T FilesSize $st.Files, (Format-Bytes $st.Bytes))); $it.ForeColor = 'DarkOrange'
         }
         [void]$lv.Items.Add($it)
     }
-    $lblApp.Text = if ($p.Exe) { "App: $($p.Exe)" } else { 'App: chua cai RealGUIDE (khong thay registry RealGUIDE5)' }
+    $lblApp.Text = if ($p.Exe) { T AppAt $p.Exe } else { $S.AppNone }
     if (-not $txtRoot.Text) { $txtRoot.Text = Get-DataRootGuess }
     if (-not $txtBk.Text) {
         $guess = Split-Path $PSScriptRoot -Parent
@@ -179,25 +182,25 @@ function Refresh-Status {
             if ($latest) { $txtBk.Text = $latest.FullName }
         }
     }
-    $status.Text = 'San sang.'
+    $status.Text = $S.Ready
 }
 
 function Refresh-Backups {
-    $status.Text = 'Dang quet backup co san tren cac o dia...'; $form.Refresh()
+    $status.Text = $S.Scanning; $form.Refresh()
     $lvBk.Items.Clear()
     $roots = @(); if ($txtRoot.Text) { $roots += (Join-Path $txtRoot.Text 'Backups') }
-    try { $list = @(Find-ExistingBackups -ExtraRoots $roots) } catch { Append-Log "Loi quet backup: $_`r`n" 'Salmon'; $list = @() }
+    try { $list = @(Find-ExistingBackups -ExtraRoots $roots) } catch { Append-Log ((T ErrScan $_) + "`r`n") 'Salmon'; $list = @() }
     foreach ($b in $list) {
-        $s = Get-DirStats $b.Path
+        $st = Get-DirStats $b.Path
         $it = New-Object System.Windows.Forms.ListViewItem($b.Created.ToString('yyyy-MM-dd HH:mm'))
-        [void]$it.SubItems.Add($b.Name); [void]$it.SubItems.Add($b.Type)
-        [void]$it.SubItems.Add("$($s.Files) file, $(Format-Bytes $s.Bytes)"); [void]$it.SubItems.Add($b.Path)
+        [void]$it.SubItems.Add($b.Name); [void]$it.SubItems.Add($(if ($b.Type -eq 'chuan') { $S.TypeStd } else { $S.TypeOld }))
+        [void]$it.SubItems.Add((T FilesSize $st.Files, (Format-Bytes $st.Bytes))); [void]$it.SubItems.Add($b.Path)
         $it.Tag = $b.Path
         if ($b.Type -ne 'chuan') { $it.ForeColor = 'DarkOrange' }
         [void]$lvBk.Items.Add($it)
     }
     if ($lvBk.Items.Count) { $lvBk.Items[0].Selected = $true }
-    $status.Text = "Tim thay $($list.Count) backup."
+    $status.Text = T FoundBackups $list.Count
 }
 function Get-SelectedBackup { if ($lvBk.SelectedItems.Count) { $lvBk.SelectedItems[0].Tag } else { $null } }
 
@@ -222,13 +225,13 @@ function Set-Busy {
 
 function Invoke-Tool {
     param([string]$Script, [string[]]$Arguments = @(), [string]$Title)
-    if ($script:Proc -and -not $script:Proc.HasExited) { Msg 'Dang co tac vu chay, vui long cho.'; return }
+    if ($script:Proc -and -not $script:Proc.HasExited) { Msg $S.Busy; return }
     Set-Content $script:OutFile ''; Set-Content $script:ErrFile ''
     $script:OutPos = 0; $script:ErrPos = 0
     $log.Clear(); Append-Log ">>> $Title`r`n>>> $Script $($Arguments -join ' ')`r`n`r`n" 'DeepSkyBlue'
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Q (Join-Path $PSScriptRoot $Script))) + $Arguments
     $script:Proc = Start-Process powershell.exe -ArgumentList ($argList -join ' ') -RedirectStandardOutput $script:OutFile -RedirectStandardError $script:ErrFile -WindowStyle Hidden -PassThru
-    Set-Busy $true; $status.Text = "Dang chay: $Title ..."
+    Set-Busy $true; $status.Text = T Running $Title
     $timer.Start()
 }
 
@@ -241,8 +244,8 @@ $timer.Add_Tick({
         $t = Read-NewText $script:OutFile ([ref]$script:OutPos); if ($t) { Append-Log $t }
         $e = Read-NewText $script:ErrFile ([ref]$script:ErrPos); if ($e) { Append-Log $e 'Salmon' }
         $code = $script:Proc.ExitCode
-        if ($code -eq 0) { Append-Log "`r`n>>> HOAN TAT.`r`n" 'LightGreen'; $status.Text = 'Hoan tat.' }
-        else { Append-Log "`r`n>>> KET THUC VOI LOI (ma $code).`r`n" 'Salmon'; $status.Text = "Ket thuc voi loi (ma $code)." }
+        if ($code -eq 0) { Append-Log "`r`n$($S.DoneLog)`r`n" 'LightGreen'; $status.Text = $S.Done }
+        else { Append-Log "`r`n$(T FailLog $code)`r`n" 'Salmon'; $status.Text = T Fail $code }
         Set-Busy $false
         Refresh-Status
     }
@@ -250,89 +253,89 @@ $timer.Add_Tick({
 
 # ---------------------------------------------------------------- events
 $btnRefresh.Add_Click({ Refresh-Status })
-$btnOpenLib.Add_Click({ $p = $script:Paths.Library; if (Test-Path $p) { Start-Process explorer.exe $p } else { Msg 'Chua co thu muc thu vien.' } })
-$btnOpenData.Add_Click({ $r = $txtRoot.Text; if ($r -and (Test-Path $r)) { Start-Process explorer.exe $r } else { Msg 'Chua co thu muc du lieu.' } })
+$btnOpenLib.Add_Click({ $p = $script:Paths.Library; if (Test-Path $p) { Start-Process explorer.exe $p } else { Msg $S.NoLib } })
+$btnOpenData.Add_Click({ $r = $txtRoot.Text; if ($r -and (Test-Path $r)) { Start-Process explorer.exe $r } else { Msg $S.NoData } })
 
-$btnDest.Add_Click({ $f = Pick-Folder 'Chon thu muc dich de luu backup' $txtDest.Text; if ($f) { $txtDest.Text = $f } })
-$btnRoot.Add_Click({ $f = Pick-Folder 'Chon noi luu du lieu RealGUIDE tren may nay' $txtRoot.Text; if ($f) { $txtRoot.Text = $f } })
+$btnDest.Add_Click({ $f = Pick-Folder $S.PickDest $txtDest.Text; if ($f) { $txtDest.Text = $f } })
+$btnRoot.Add_Click({ $f = Pick-Folder $S.PickRoot $txtRoot.Text; if ($f) { $txtRoot.Text = $f } })
 $btnBk.Add_Click({
-    $f = Pick-Folder 'Chon thu muc backup (RealGuideLibrary-..., co manifest.json) hoac thu muc cha chua nhieu backup' $txtBk.Text
+    $f = Pick-Folder $S.PickBk $txtBk.Text
     if (-not $f) { return }
     if (-not (Test-Path (Join-Path $f 'manifest.json'))) {
         # Chon thu muc cha -> tu lay backup moi nhat ben trong
         $latest = Get-ChildItem $f -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName 'manifest.json') } | Sort-Object Name -Descending | Select-Object -First 1
-        if ($latest) { $f = $latest.FullName; $status.Text = "Da chon backup moi nhat: $($latest.Name)" }
-        else { Msg "Thu muc nay khong co manifest.json (khong phai backup do Backup-Library tao).`nVan co the dung neu la backup cu dang phang (co stldb)." 'Luu y' 'Warning' }
+        if ($latest) { $f = $latest.FullName; $status.Text = T LatestPicked $latest.Name }
+        else { Msg $S.NotBackup $S.Warning 'Warning' }
     }
     $txtBk.Text = $f
 })
 
 $btnBackup.Add_Click({
-    if (-not $txtDest.Text) { Msg 'Chua chon thu muc dich.' 'Thieu thong tin' 'Warning'; return }
+    if (-not $txtDest.Text) { Msg $S.NoDest $S.Missing 'Warning'; return }
     $a = @('-Destination', (Q $txtDest.Text))
     if ($chkBkDb.Checked)    { $a += '-IncludePatientDb' }
     if ($chkBkCfg.Checked)   { $a += '-IncludeConfig' }
     if ($chkBkClose.Checked) { $a += '-CloseApp' }
-    Invoke-Tool 'Backup-Library.ps1' $a 'Backup thu vien'
+    Invoke-Tool 'Backup-Library.ps1' $a $S.TaskBackup
 })
 
 $btnBkScan.Add_Click({ Refresh-Backups })
 $btnBkUse.Add_Click({
     $b = Get-SelectedBackup
-    if (-not $b) { Msg 'Chua chon backup nao trong danh sach.' 'Thieu thong tin' 'Warning'; return }
+    if (-not $b) { Msg $S.NoBkSel $S.Missing 'Warning'; return }
     $txtBk.Text = $b; $tabs.SelectedTab = $tabNew
-    $status.Text = "Da chon backup: $b -> kiem tra 'Noi luu du lieu' roi bam THIET LAP MAY MOI."
+    $status.Text = T BkChosen $b
 })
 $btnBkExport.Add_Click({
     $b = Get-SelectedBackup
-    if (-not $b) { Msg 'Chua chon backup nao trong danh sach.' 'Thieu thong tin' 'Warning'; return }
-    $f = Pick-Folder 'Chon USB / o ngoai de chep backup sang' ''
+    if (-not $b) { Msg $S.NoBkSel $S.Missing 'Warning'; return }
+    $f = Pick-Folder $S.PickUsb ''
     if (-not $f) { return }
-    $s = Get-DirStats $b
-    if (-not (Ask "Chep backup:`n$b`n($(Format-Bytes $s.Bytes))`n`nsang: $f ?")) { return }
-    Invoke-Tool 'Export-Backup.ps1' @('-BackupPath', (Q $b), '-Destination', (Q $f)) 'Copy backup sang o ngoai'
+    $st = Get-DirStats $b
+    if (-not (Ask (T AskExport $b, (Format-Bytes $st.Bytes), $f))) { return }
+    Invoke-Tool 'Export-Backup.ps1' @('-BackupPath', (Q $b), '-Destination', (Q $f)) $S.TaskExport
 })
 $btnBkOpen.Add_Click({ $b = Get-SelectedBackup; if ($b) { Start-Process explorer.exe $b } })
 $tabs.Add_SelectedIndexChanged({ if ($tabs.SelectedTab -eq $tabExist -and $lvBk.Items.Count -eq 0) { Refresh-Backups } })
 
 $btnSetupAll.Add_Click({
-    if (-not $txtRoot.Text) { Msg 'Chua nhap noi luu du lieu.' 'Thieu thong tin' 'Warning'; return }
-    if (-not $txtBk.Text -or -not (Test-Path $txtBk.Text)) { Msg 'Thu muc backup khong ton tai.' 'Thieu thong tin' 'Warning'; return }
-    $m = "Se thuc hien:`n- Dong RealGUIDE neu dang chay`n" + $(if (-not $chkSkipJ.Checked) { "- Chuyen du lieu C: -> $($txtRoot.Text) va tao junction`n" }) + "- Khoi phuc thu vien tu: $($txtBk.Text)`n- Kiem tra lai`n`nTiep tuc?"
-    if (-not (Ask $m)) { return }
+    if (-not $txtRoot.Text) { Msg $S.NoRoot $S.Missing 'Warning'; return }
+    if (-not $txtBk.Text -or -not (Test-Path $txtBk.Text)) { Msg $S.NoBk $S.Missing 'Warning'; return }
+    $jLine = if ($chkSkipJ.Checked) { '' } else { T AskSetupJunctionLine $txtRoot.Text }
+    if (-not (Ask (T AskSetupAll $jLine, $txtBk.Text))) { return }
     $a = @('-DataRoot', (Q $txtRoot.Text), '-BackupPath', (Q $txtBk.Text))
     if ($chkRsDb.Checked)  { $a += '-RestorePatientDb' }
     if ($chkRsCfg.Checked) { $a += '-RestoreConfig' }
     if ($chkSkipJ.Checked) { $a += '-SkipJunctions' }
-    Invoke-Tool 'Setup-NewMachine.ps1' $a 'Thiet lap may moi'
+    Invoke-Tool 'Setup-NewMachine.ps1' $a $S.TaskSetupAll
 })
 $btnJunction.Add_Click({
-    if (-not $txtRoot.Text) { Msg 'Chua nhap noi luu du lieu.' 'Thieu thong tin' 'Warning'; return }
-    if (-not (Ask "Dong RealGUIDE, chuyen du lieu C: sang $($txtRoot.Text) va tao junction?")) { return }
-    Invoke-Tool 'Setup-Junctions.ps1' @('-DataRoot', (Q $txtRoot.Text)) 'Tao junction'
+    if (-not $txtRoot.Text) { Msg $S.NoRoot $S.Missing 'Warning'; return }
+    if (-not (Ask (T AskJunction $txtRoot.Text))) { return }
+    Invoke-Tool 'Setup-Junctions.ps1' @('-DataRoot', (Q $txtRoot.Text)) $S.TaskJunction
 })
 $btnRestore.Add_Click({
-    if (-not $txtBk.Text -or -not (Test-Path $txtBk.Text)) { Msg 'Thu muc backup khong ton tai.' 'Thieu thong tin' 'Warning'; return }
-    if (-not (Ask "Dong RealGUIDE va khoi phuc thu vien tu:`n$($txtBk.Text)`n(robocopy /MIR - ghi de thu vien hien tai)?")) { return }
+    if (-not $txtBk.Text -or -not (Test-Path $txtBk.Text)) { Msg $S.NoBk $S.Missing 'Warning'; return }
+    if (-not (Ask (T AskRestore $txtBk.Text))) { return }
     $a = @('-BackupPath', (Q $txtBk.Text))
     if ($chkRsDb.Checked)  { $a += '-RestorePatientDb' }
     if ($chkRsCfg.Checked) { $a += '-RestoreConfig' }
-    Invoke-Tool 'Restore-Library.ps1' $a 'Khoi phuc thu vien'
+    Invoke-Tool 'Restore-Library.ps1' $a $S.TaskRestore
 })
 
-$btnFind.Add_Click({ Invoke-Tool 'Find-RealGuide.ps1' @('-ScanDrives') 'Tim RealGUIDE' })
-$btnVerify.Add_Click({ $a = @(); if ($txtRoot.Text) { $a = @('-DataRoot', (Q $txtRoot.Text)) }; Invoke-Tool 'Verify-Setup.ps1' $a 'Kiem tra' })
-$btnRepair.Add_Click({ Invoke-Tool 'Repair-Sleeves.ps1' @() 'Va sleeve ket' })
+$btnFind.Add_Click({ Invoke-Tool 'Find-RealGuide.ps1' @('-ScanDrives') $S.TaskFind })
+$btnVerify.Add_Click({ $a = @(); if ($txtRoot.Text) { $a = @('-DataRoot', (Q $txtRoot.Text)) }; Invoke-Tool 'Verify-Setup.ps1' $a $S.TaskVerify })
+$btnRepair.Add_Click({ Invoke-Tool 'Repair-Sleeves.ps1' @() $S.TaskRepair })
 $btnUndo.Add_Click({
-    if (-not $txtRoot.Text) { Msg 'Chua nhap noi luu du lieu.' 'Thieu thong tin' 'Warning'; return }
-    if (-not (Ask "GO JUNCTION va di chuyen toan bo du lieu tu $($txtRoot.Text) VE LAI o C:?`nRealGUIDE se bi dong. O C: can du dung luong trong.")) { return }
-    Invoke-Tool 'Setup-Junctions.ps1' @('-DataRoot', (Q $txtRoot.Text), '-Undo') 'Go junction'
+    if (-not $txtRoot.Text) { Msg $S.NoRoot $S.Missing 'Warning'; return }
+    if (-not (Ask (T AskUndo $txtRoot.Text))) { return }
+    Invoke-Tool 'Setup-Junctions.ps1' @('-DataRoot', (Q $txtRoot.Text), '-Undo') $S.TaskUndo
 })
 
 $form.Add_Shown({ Refresh-Status; if ($env:RGM_TAB) { $tabs.SelectedIndex = [int]$env:RGM_TAB } })
 $form.Add_FormClosing({
     if ($script:Proc -and -not $script:Proc.HasExited) {
-        if (-not (Ask 'Dang co tac vu chay. Dong cua so se KHONG dung tac vu (van chay ngam). Van dong?')) { $_.Cancel = $true }
+        if (-not (Ask $S.AskClose)) { $_.Cancel = $true }
     }
     Remove-Item $script:OutFile, $script:ErrFile -Force -ErrorAction SilentlyContinue
 })

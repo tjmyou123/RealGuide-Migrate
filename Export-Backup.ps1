@@ -61,7 +61,7 @@ if ($isStd) {
 # Kem bo cong cu (phien ban hien tai)
 $tools = Join-Path $dest 'RealGuide-Migrate'
 New-Item -ItemType Directory -Path $tools -Force | Out-Null
-Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\README.md" $tools -Force -ErrorAction SilentlyContinue
+Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\Strings.*.txt", "$PSScriptRoot\README.md" $tools -Force -ErrorAction SilentlyContinue
 
 $d = Get-DirStats $dest
 Write-Step "HOAN TAT"

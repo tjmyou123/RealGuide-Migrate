@@ -101,7 +101,7 @@ $manifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $dest 'manifest.jso
 # Kem bo cong cu vao backup de may moi chay ngay khong can copy rieng
 $toolsDest = Join-Path $dest 'RealGuide-Migrate'
 New-Item -ItemType Directory -Path $toolsDest -Force | Out-Null
-Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\README.md" $toolsDest -Force -ErrorAction SilentlyContinue
+Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\Strings.*.txt", "$PSScriptRoot\README.md" $toolsDest -Force -ErrorAction SilentlyContinue
 
 $total = Get-DirStats $dest
 Write-Step "HOAN TAT"

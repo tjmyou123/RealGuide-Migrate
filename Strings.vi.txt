@@ -1,0 +1,113 @@
+# Chuỗi giao diện tiếng Việt cho RealGuide-Migrate.GUI.ps1 (UTF-8, key=value, \n = xuống dòng, \\ = dấu \)
+# Muốn đổi câu chữ chỉ cần sửa file này, không cần sửa code.
+
+Title=RealGuide-Migrate {0} — Sao lưu / chuyển RealGUIDE sang máy khác
+NoAdmin=   [KHÔNG có quyền Admin — nên mở qua RealGuide-Migrate.cmd]
+Confirm=Xác nhận
+Warning=Lưu ý
+Missing=Thiếu thông tin
+
+GrpStatus= Trạng thái RealGUIDE trên máy này 
+ColItem=Hạng mục
+ColLink=Đường dẫn RealGUIDE dùng
+ColTarget=Thực tế lưu tại
+ColSize=Dung lượng
+BtnRefresh=Làm mới
+BtnOpenLib=Mở thư mục thư viện
+BtnOpenData=Mở thư mục dữ liệu
+RowLibrary=Thư viện implant/sleeve
+RowPatientDb=DB bệnh nhân
+RowQml=QML cache
+RowNnt=NNT ini
+StNotExist=(chưa có)
+StJunction=junction → {0}
+StRealDir=thư mục thật (trên C:)
+FilesSize={0} file, {1}
+AppAt=App: {0}
+AppNone=App: chưa cài RealGUIDE (không thấy registry RealGUIDE5)
+
+Tab1=  1. Backup (máy cũ)  
+Tab2=  2. Thư viện có sẵn → USB  
+Tab3=  3. Máy mới: junction + khôi phục  
+Tab4=  4. Bảo trì / kiểm tra  
+
+LblDest=Thư mục đích (USB / ổ ngoài):
+BtnBrowse=Chọn...
+ChkBkDb=Kèm DB bệnh nhân (RealGUIDE50-DB — có thể rất lớn)
+ChkBkCfg=Kèm cấu hình máy (*.ini, *.set, *.dat, *.xlb)
+ChkBkClose=Tự động đóng RealGUIDE trước khi backup
+BtnBackup=BẮT ĐẦU BACKUP
+HintBackup=Kết quả: <đích>\\RealGuideLibrary-<ngày-giờ>\\ gồm thư viện + manifest.json + bản sao bộ công cụ này.
+
+LblExist=Các bản backup thư viện đã có trên máy / USB (tự quét mọi ổ đĩa). Chọn 1 dòng rồi bấm nút bên dưới:
+ColCreated=Ngày tạo
+ColName=Tên
+ColType=Dạng
+ColPath=Đường dẫn
+TypeStd=chuẩn
+TypeOld=cũ (phẳng)
+BtnBkScan=Quét lại
+BtnBkUse=Dùng cho máy mới →
+BtnBkExport=Copy sang USB / ổ ngoài...
+BtnBkOpen=Mở thư mục
+HintExist="Copy sang USB" chỉ sao chép backup đã có (không backup lại), kèm bộ công cụ.
+
+LblRoot=Nơi lưu dữ liệu trên máy này (junction sẽ trỏ tới đây):
+LblBk=Thư mục backup cần khôi phục (RealGuideLibrary-<ngày-giờ>, có manifest.json) — tự điền nếu GUI mở từ trong backup:
+ChkRsDb=Khôi phục DB bệnh nhân
+ChkRsCfg=Khôi phục cấu hình máy cũ
+ChkSkipJ=Không tạo junction (để dữ liệu trên C:)
+BtnSetupAll=THIẾT LẬP MÁY MỚI (junction + khôi phục + kiểm tra)
+BtnJunction=Chỉ tạo junction
+BtnRestore=Chỉ khôi phục thư viện
+
+BtnFind=Tìm RealGUIDE lưu ở đâu (quét cả ổ đĩa)
+BtnVerify=Kiểm tra junction + thư viện
+BtnRepair=Vá sleeve kẹt ("Polygon count is zero")
+BtnUndo=GỠ JUNCTION — đưa dữ liệu về C: (trước khi Uninstall)
+HintMaint=Lưu ý:\n- Vá sleeve: chạy KHI RealGUIDE đang mở, trước khi mở ca.\n- Gỡ junction: BẮT BUỘC làm trước khi chạy Uninstall.exe, nếu không trình gỡ cài đặt có thể xóa lan sang dữ liệu thật.
+
+Ready=Sẵn sàng.
+Finding=Đang tìm đường dẫn RealGUIDE...
+ErrFind=Lỗi tìm đường dẫn: {0}
+Scanning=Đang quét backup có sẵn trên các ổ đĩa...
+ErrScan=Lỗi quét backup: {0}
+FoundBackups=Tìm thấy {0} backup.
+Busy=Đang có tác vụ chạy, vui lòng chờ.
+Running=Đang chạy: {0} ...
+Done=Hoàn tất.
+DoneLog=>>> HOÀN TẤT.
+FailLog=>>> KẾT THÚC VỚI LỖI (mã {0}).
+Fail=Kết thúc với lỗi (mã {0}).
+NoLib=Chưa có thư mục thư viện.
+NoData=Chưa có thư mục dữ liệu.
+NoDest=Chưa chọn thư mục đích.
+NoRoot=Chưa nhập nơi lưu dữ liệu.
+NoBk=Thư mục backup không tồn tại.
+NoBkSel=Chưa chọn backup nào trong danh sách.
+
+PickDest=Chọn thư mục đích để lưu backup
+PickRoot=Chọn nơi lưu dữ liệu RealGUIDE trên máy này
+PickBk=Chọn thư mục backup (RealGuideLibrary-..., có manifest.json) hoặc thư mục cha chứa nhiều backup
+PickUsb=Chọn USB / ổ ngoài để chép backup sang
+LatestPicked=Đã chọn backup mới nhất: {0}
+NotBackup=Thư mục này không có manifest.json (không phải backup do Backup-Library tạo).\nVẫn có thể dùng nếu là backup cũ dạng phẳng (có stldb).
+BkChosen=Đã chọn backup: {0} → kiểm tra "Nơi lưu dữ liệu" rồi bấm THIẾT LẬP MÁY MỚI.
+
+AskExport=Chép backup:\n{0}\n({1})\n\nsang: {2} ?
+AskSetupAll=Sẽ thực hiện:\n- Đóng RealGUIDE nếu đang chạy\n{0}- Khôi phục thư viện từ: {1}\n- Kiểm tra lại\n\nTiếp tục?
+AskSetupJunctionLine=- Chuyển dữ liệu C: → {0} và tạo junction\n
+AskJunction=Đóng RealGUIDE, chuyển dữ liệu C: sang {0} và tạo junction?
+AskRestore=Đóng RealGUIDE và khôi phục thư viện từ:\n{0}\n(robocopy /MIR — ghi đè thư viện hiện tại)?
+AskUndo=GỠ JUNCTION và di chuyển toàn bộ dữ liệu từ {0} VỀ LẠI ổ C:?\nRealGUIDE sẽ bị đóng. Ổ C: cần đủ dung lượng trống.
+AskClose=Đang có tác vụ chạy. Đóng cửa sổ sẽ KHÔNG dừng tác vụ (vẫn chạy ngầm). Vẫn đóng?
+
+TaskBackup=Backup thư viện
+TaskExport=Copy backup sang ổ ngoài
+TaskSetupAll=Thiết lập máy mới
+TaskJunction=Tạo junction
+TaskRestore=Khôi phục thư viện
+TaskFind=Tìm RealGUIDE
+TaskVerify=Kiểm tra
+TaskRepair=Vá sleeve kẹt
+TaskUndo=Gỡ junction
