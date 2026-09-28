@@ -1,0 +1,90 @@
+# RealGuide-Migrate
+
+Bộ công cụ chuyển RealGUIDE (Zimmer Biomet / ZimVie) sang máy khác: **backup thư viện implant/sleeve** trên máy cũ, **tạo junction** đưa dữ liệu ra ổ khác và **khôi phục thư viện** trên máy mới. Tất cả chạy bằng PowerShell có sẵn trên Windows, không cần cài thêm.
+
+## Vì sao cần bộ này
+
+- RealGUIDE ghi cứng dữ liệu vào `%APPDATA%\RealguideZimmerBiomet` (thư viện ~8.5 GB), `%APPDATA%\RealGUIDE50-DB` (bệnh nhân, có thể hàng chục GB), `%LOCALAPPDATA%\RealGUIDE` (QML cache) và `C:\NNT`. Không có tùy chọn đổi nơi lưu → dùng **junction** để trỏ sang ổ D/E.
+- Server ZimVie EU hiện trả rỗng cho gói sleeve → máy mới cài sạch sẽ tải thiếu và báo *"Polygon count is zero"*. Mang thư viện lành + các file `.stl.dec` đã "chốt sổ" từ máy cũ sang là cách chắc chắn nhất.
+
+## Giao diện (khuyến nghị)
+
+Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
+
+- **Trạng thái**: tự tìm 4 vị trí dữ liệu, cho biết đang là junction (xanh) hay thư mục thậ t trên C: (cam), dung lượng, app cài ở đâu.
+- **Tab 1 Backup (máy cũ)**: chọn đích, tùy chọn kèm DB bệnh nhân / cấu hình → *BẮt đầu backup*.
+- **Tab 2 Máy mới**: chọn nơi lưu dữ liệu + thư mục backup → *Thiết lậ p máy mới* (hoặc chỉ tạo junction / chỉ khôi phục).
+- **Tab 3 Bảo trì**: tìm đường dẫn, kiểm tra, vá sleeve, gỡ junction trước khi Uninstall.
+- **Log** đen ở dưới hiện tiến trình thời gian thực; thanh chạy khi đang bậ n; mọi tác vụ nguy hiểm đều hỏi xác nhậ n.
+
+GUI chỉ là lớp vỏ gọi các script bên dưới (chạy tiến trình con, không treo cửa sổ), nên dùng dòng lệnh hay GUI đều cho kết quả như nhau.
+
+## Quy trình 3 bước (dòng lệnh)
+
+### 1. Máy cũ – backup
+
+Double-click `Backup-Library.cmd`, nhập thư mục đích (USB/ổ ngoài), hoặc:
+
+```powershell
+.\Backup-Library.ps1 -Destination "F:\RealGuideBackup" -CloseApp
+# Kèm DB bệnh nhân:            -IncludePatientDb
+# Kèm cấu hình *.ini/*.set...: -IncludeConfig
+```
+
+Kết quả: `F:\RealGuideBackup\RealGuideLibrary-<ngày-giờ>\` gồm
+`RealguideZimmerBiomet\` (stldb, stlcaddb, asset_cache, 3D_Templates, templates, *.imp/*.pin, tmp\decs\*.stl.dec), `manifest.json`, và **bản sao bộ công cụ này** để máy mới chạy ngay.
+
+### 2. Máy mới – cài RealGUIDE
+
+Chạy installer gốc (`Zimmer-EU-x64-…-Setup.exe`), đăng nhập tài khoản. Có thể mở app 1 lần rồi đóng, hoặc không cần.
+
+### 3. Máy mới – junction + khôi phục
+
+Cắm ổ backup, vào `…\RealGuideLibrary-<ngày>\RealGuide-Migrate\`, double-click `Setup-NewMachine.cmd` (tự xin Admin), nhập nơi lưu dữ liệu (VD `D:\RealGuideData`). Hoặc:
+
+```powershell
+.\Setup-NewMachine.ps1 -DataRoot "D:\RealGuideData" -BackupPath "F:\RealGuideBackup\RealGuideLibrary-20260928-0900"
+# thêm -RestorePatientDb nếu backup có DB bệnh nhân
+```
+
+Script sẽ: đóng app → di chuyển dữ liệu C: hiện có sang `DataRoot` và tạo 4 junction → mirror thư viện từ backup → vá sleeve kẹt → in báo cáo kiểm tra.
+
+## Các script
+
+| File | Việc |
+|---|---|
+| `RealGuide-Migrate.cmd` + `RealGuide-Migrate.GUI.ps1` | **Giao diện** gộp toàn bộ chức năng |
+| `Find-RealGuide.ps1/.cmd` | **Tự tìm** RealGUIDE lưu file ở đâu (app, thư viện, DB, cache, junction; `-ScanDrives` quét thêm ổ đĩa) |
+| `Backup-Library.ps1/.cmd` | Backup thư viện (+ tùy chọn DB bệnh nhân, cấu hình) |
+| `Setup-Junctions.ps1` | Tạo/gỡ (`-Undo`) 4 junction, di chuyển dữ liệu, test ghi xuyên |
+| `Restore-Library.ps1` | Khôi phục thư viện từ backup (robocopy /MIR, xóa rác 0-byte) |
+| `Setup-NewMachine.ps1/.cmd` | Gộp Setup-Junctions + Restore-Library + Verify |
+| `Verify-Setup.ps1/.cmd` | Kiểm tra junction, thư viện, sleeve kẹt, registry |
+| `Repair-Sleeves.ps1/.cmd` | Vá `.part → .stl.dec` khi báo "Polygon count is zero" |
+| `Common.ps1` | Hàm chung (bảng ánh xạ junction, robocopy, xác thực STL…) |
+
+## Tự phát hiện đường dẫn
+
+Mọi script **không hardcode** đường dẫn mà gọi `Find-RealGuidePaths` (trong `Common.ps1`):
+
+1. Registry `HKCU/HKLM\SOFTWARE\RealGUIDE5` → `InstallString` (exe), `UninstallFolder` (thư viện AppData).
+2. Quét `%APPDATA%` tìm thư mục `Real*guide*` có dấu hiệu: thư viện (`sleeves.imp`/`stldb`/`asset_cache`), DB bệnh nhân (`xmlStudiesList.xml`/`Storage`).
+3. `%LOCALAPPDATA%\RealGUIDE*` (QML cache), `C:\NNT`.
+4. `-ScanDrives`: quét các ổ đĩa (sâu 2 cấp) tìm thêm bản sao/backup/dữ liệu đã chuyển tay.
+
+Nếu chưa cài app (máy mới) → dùng tên mặc định (`RealguideZimmerBiomet`, `RealGUIDE50-DB`…) để vẫn tạo junction trước. Nhờ vậy bộ công cụ chạy được với build vendor khác (tên thư mục AppData khác) miễn có registry `RealGUIDE5`.
+
+## Bảng junction
+
+| Đường dẫn RealGUIDE ghi cứng | Trỏ tới |
+|---|---|
+| `%APPDATA%\RealguideZimmerBiomet` | `<DataRoot>\RealguideZimmerBiomet` |
+| `%APPDATA%\RealGUIDE50-DB` | `<DataRoot>\RealGUIDE50-DB` |
+| `%LOCALAPPDATA%\RealGUIDE` | `<DataRoot>\RealGUIDE-QmlCache` |
+| `C:\NNT` | `<DataRoot>\NNT` |
+
+## Cảnh báo quan trọng
+
+- **Trước khi chạy `Uninstall.exe` của RealGUIDE** phải gỡ junction: `.\Setup-Junctions.ps1 -DataRoot "D:\RealGuideData" -Undo`. Trình gỡ NSIS dùng `RMDir /r` có thể xóa lan qua junction sang dữ liệu thật.
+- `-IncludeConfig` / `-RestoreConfig` mang theo `options.ini`, `local_data.set`… của máy cũ; mặc định **không** bật để máy mới giữ cấu hình/đăng nhập riêng.
+- Backup cũ dạng phẳng (`LibraryBackup-20260819`, không có thư mục con `RealguideZimmerBiomet`) vẫn khôi phục được bằng `Restore-Library.ps1`.

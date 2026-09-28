@@ -1,0 +1,20 @@
+# Du lieu - KHONG bao gio up len repo
+*.stl
+*.stl.dec
+*.part
+*.imp
+*.pin
+*.tar
+*.tar.*
+*.part[0-9]*
+manifest.json
+RealguideZimmerBiomet/
+RealGUIDE50-DB/
+Backups/
+Storage/
+*.dcm
+
+# Tam
+*.log
+*.tmp
+Thumbs.db
