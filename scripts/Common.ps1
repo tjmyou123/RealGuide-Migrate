@@ -197,6 +197,29 @@ function Format-Bytes {
     return "$Bytes B"
 }
 
+# Bo cuc bo cong cu: <ToolRoot>\RealGuide-Migrate.cmd + README.md + scripts\*.ps1 (file nay nam trong scripts\)
+$script:ToolRoot = Split-Path $PSScriptRoot -Parent
+
+# Khi bo cong cu nam trong 1 backup (<backup>\RealGuide-Migrate\scripts\Common.ps1) -> tra ve <backup>, khong thi $null
+function Get-ContainingBackup {
+    $d = $PSScriptRoot
+    for ($i = 0; $i -lt 3 -and $d; $i++) {
+        $d = Split-Path $d -Parent
+        if ($d -and (Test-Path -LiteralPath (Join-Path $d 'manifest.json'))) { return $d }
+    }
+    return $null
+}
+
+# Chep bo cong cu (khong kem .git) vao $Destination\RealGuide-Migrate
+function Copy-Tools {
+    param([Parameter(Mandatory)][string]$Destination)
+    $dst = Join-Path $Destination 'RealGuide-Migrate'
+    New-Item -ItemType Directory -Path (Join-Path $dst 'scripts') -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $script:ToolRoot 'RealGuide-Migrate.cmd'), (Join-Path $script:ToolRoot 'README.md') -Destination $dst -Force -ErrorAction SilentlyContinue
+    Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\Strings.*.txt" (Join-Path $dst 'scripts') -Force -ErrorAction SilentlyContinue
+    return $dst
+}
+
 # Va sleeve ket: tmp\decs\<GUID>.part (STL hoan chinh) -> <GUID>.stl.dec
 # Chi copy khi xac thuc binary STL: size == 84 + 50 * so_tam_giac
 function Repair-StuckSleeves {

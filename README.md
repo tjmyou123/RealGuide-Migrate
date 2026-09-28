@@ -20,13 +20,27 @@ Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
 
 GUI chỉ là lớp vỏ gọi các script bên dưới (chạy tiến trình con, không treo cửa sổ), nên dùng dòng lệnh hay GUI đều cho kết quả như nhau.
 
-Toàn bộ chữ trên giao diện (tiếng Việt có dấu) nằm trong `Strings.vi.txt` (UTF-8, dạng `Khóa=Giá trị`, `\n` = xuống dòng). Muốn đổi câu chữ hoặc dịch sang ngôn ngữ khác chỉ cần sửa file này, không cần đụng code. Log của các script con vẫn là tiếng Việt không dấu để hiển thị đúng trên mọi console.
+Toàn bộ chữ trên giao diện (tiếng Việt có dấu) nằm trong `scripts\Strings.vi.txt` (UTF-8, dạng `Khóa=Giá trị`, `\n` = xuống dòng). Muốn đổi câu chữ hoặc dịch sang ngôn ngữ khác chỉ cần sửa file này, không cần đụng code. Log của các script con vẫn là tiếng Việt không dấu để hiển thị đúng trên mọi console.
+
+## Bố cục thư mục
+
+```
+RealGuide-Migrate\
+├─ RealGuide-Migrate.cmd   ← FILE CHẠY CHÍNH (double-click, tự xin Admin, mở giao diện)
+├─ README.md
+└─ scripts\                ← toàn bộ script bên dưới, không cần đụng vào
+   ├─ RealGuide-Migrate.GUI.ps1, Common.ps1, Strings.vi.txt
+   ├─ Backup-Library / Setup-NewMachine / Verify-Setup / Repair-Sleeves / Find-RealGuide (.ps1 + .cmd)
+   └─ Setup-Junctions.ps1, Restore-Library.ps1, Export-Backup.ps1
+```
+
+Các lệnh dòng lệnh dưới đây chạy từ trong `scripts\`.
 
 ## Quy trình 3 bước (dòng lệnh)
 
 ### 1. Máy cũ – backup
 
-Double-click `Backup-Library.cmd`, nhập thư mục đích (USB/ổ ngoài), hoặc:
+Double-click `scripts\Backup-Library.cmd`, nhập thư mục đích (USB/ổ ngoài), hoặc:
 
 ```powershell
 .\Backup-Library.ps1 -Destination "F:\RealGuideBackup" -CloseApp
@@ -43,7 +57,7 @@ Chạy installer gốc (`Zimmer-EU-x64-…-Setup.exe`), đăng nhập tài kho�
 
 ### 3. Máy mới – junction + khôi phục
 
-Cắm ổ backup, vào `…\RealGuideLibrary-<ngày>\RealGuide-Migrate\`, double-click `Setup-NewMachine.cmd` (tự xin Admin), nhập nơi lưu dữ liệu (VD `D:\RealGuideData`). Hoặc:
+Cắm ổ backup, vào `…\RealGuideLibrary-<ngày>\RealGuide-Migrate\`, double-click `RealGuide-Migrate.cmd` (giao diện, tab 3 đã điền sẵn thư mục backup) hoặc `scripts\Setup-NewMachine.cmd` (tự xin Admin), nhập nơi lưu dữ liệu (VD `D:\RealGuideData`). Hoặc:
 
 ```powershell
 .\Setup-NewMachine.ps1 -DataRoot "D:\RealGuideData" -BackupPath "F:\RealGuideBackup\RealGuideLibrary-20260928-0900"
@@ -52,11 +66,11 @@ Cắm ổ backup, vào `…\RealGuideLibrary-<ngày>\RealGuide-Migrate\`, double
 
 Script sẽ: đóng app → di chuyển dữ liệu C: hiện có sang `DataRoot` và tạo 4 junction → mirror thư viện từ backup → vá sleeve kẹt → in báo cáo kiểm tra.
 
-## Các script
+## Các script (trong `scripts\`)
 
 | File | Việc |
 |---|---|
-| `RealGuide-Migrate.cmd` + `RealGuide-Migrate.GUI.ps1` | **Giao diện** gộp toàn bộ chức năng |
+| `RealGuide-Migrate.cmd` (ở gốc) + `RealGuide-Migrate.GUI.ps1` | **Giao diện** gộp toàn bộ chức năng |
 | `Find-RealGuide.ps1/.cmd` | **Tự tìm** RealGUIDE lưu file ở đâu (app, thư viện, DB, cache, junction; `-ScanDrives` quét thêm ổ đĩa) |
 | `Backup-Library.ps1/.cmd` | Backup thư viện (+ tùy chọn DB bệnh nhân, cấu hình) |
 | `Export-Backup.ps1` | Liệt kê backup có sẵn (`-List`) / sao chép 1 backup sang USB kèm bộ công cụ |
@@ -65,7 +79,8 @@ Script sẽ: đóng app → di chuyển dữ liệu C: hiện có sang `DataRoot
 | `Setup-NewMachine.ps1/.cmd` | Gộp Setup-Junctions + Restore-Library + Verify |
 | `Verify-Setup.ps1/.cmd` | Kiểm tra junction, thư viện, sleeve kẹt, registry |
 | `Repair-Sleeves.ps1/.cmd` | Vá `.part → .stl.dec` khi báo "Polygon count is zero" |
-| `Common.ps1` | Hàm chung (bảng ánh xạ junction, robocopy, xác thực STL…) |
+| `Common.ps1` | Hàm chung (tự tìm đường dẫn, bảng ánh xạ junction, robocopy, xác thực STL, copy bộ công cụ…) |
+| `Strings.vi.txt` | Chữ trên giao diện (tiếng Việt có dấu) |
 
 ## Tự phát hiện đường dẫn
 

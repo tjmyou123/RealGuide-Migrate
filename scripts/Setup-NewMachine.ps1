@@ -26,9 +26,9 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Common.ps1"
 
 if (-not $BackupPath) {
-    # Bo cong cu duoc Backup-Library.ps1 copy vao <backup>\RealGuide-Migrate\ -> cha cua no la backup
-    $guess = Split-Path $PSScriptRoot -Parent
-    if (Test-Path (Join-Path $guess 'manifest.json')) { $BackupPath = $guess }
+    # Bo cong cu duoc Backup-Library.ps1 copy vao <backup>\RealGuide-Migrate\ -> suy ra backup chua no
+    $guess = Get-ContainingBackup
+    if ($guess) { $BackupPath = $guess }
     else { Write-Err "Khong suy ra duoc BackupPath - hay truyen -BackupPath."; exit 1 }
 }
 if (-not (Test-Path $BackupPath)) { Write-Err "Khong thay backup: $BackupPath"; exit 1 }

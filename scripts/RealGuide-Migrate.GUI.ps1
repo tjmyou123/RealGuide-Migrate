@@ -172,8 +172,8 @@ function Refresh-Status {
     $lblApp.Text = if ($p.Exe) { T AppAt $p.Exe } else { $S.AppNone }
     if (-not $txtRoot.Text) { $txtRoot.Text = Get-DataRootGuess }
     if (-not $txtBk.Text) {
-        $guess = Split-Path $PSScriptRoot -Parent
-        if (Test-Path (Join-Path $guess 'manifest.json')) { $txtBk.Text = $guess }
+        $guess = Get-ContainingBackup
+        if ($guess) { $txtBk.Text = $guess }
         elseif ($p.Extra) { $b = $p.Extra | Where-Object Kind -eq 'Backup' | Select-Object -Last 1; if ($b) { $txtBk.Text = $b.Path } }
         else {
             # Backup moi nhat trong <DataRoot>\Backups (vi tri Backup-Library thuong ghi)
