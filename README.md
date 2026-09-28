@@ -7,6 +7,45 @@ Bộ công cụ chuyển RealGUIDE (Zimmer Biomet / ZimVie) sang máy khác: **b
 - RealGUIDE ghi cứng dữ liệu vào `%APPDATA%\RealguideZimmerBiomet` (thư viện ~8.5 GB), `%APPDATA%\RealGUIDE50-DB` (bệnh nhân, có thể hàng chục GB), `%LOCALAPPDATA%\RealGUIDE` (QML cache) và `C:\NNT`. Không có tùy chọn đổi nơi lưu → dùng **junction** để trỏ sang ổ D/E.
 - Server ZimVie EU hiện trả rỗng cho gói sleeve → máy mới cài sạch sẽ tải thiếu và báo *"Polygon count is zero"*. Mang thư viện lành + các file `.stl.dec` đã "chốt sổ" từ máy cũ sang là cách chắc chắn nhất.
 
+## Cài đặt
+
+**Yêu cầu**: Windows 10/11, PowerShell 5.1 (có sẵn), quyền Administrator (để tạo junction). Không cần cài thêm gì.
+
+### Cách 1 — Tải ZIP (không cần Git)
+
+1. Vào <https://github.com/tjmyou123/RealGuide-Migrate> → nút xanh **Code** → **Download ZIP**.
+2. Chuột phải file ZIP → **Properties** → tick **Unblock** → OK (bỏ cờ "tải từ Internet", nếu không SmartScreen sẽ chặn `.cmd`).
+3. Giải nén vào chỗ cố định, VD `D:\Tools\RealGuide-Migrate\` (tránh Desktop/Downloads vì thư mục này sẽ được copy kèm vào backup).
+4. Double-click **`RealGuide-Migrate.cmd`** → chọn **Yes** ở hộp UAC → giao diện mở lên.
+
+Nếu quên bước 2 và bị chặn: mở PowerShell tại thư mục vừa giải nén, chạy
+```powershell
+Get-ChildItem -Recurse | Unblock-File
+```
+
+### Cách 2 — Git
+
+```powershell
+git clone https://github.com/tjmyou123/RealGuide-Migrate.git D:\Tools\RealGuide-Migrate
+D:\Tools\RealGuide-Migrate\RealGuide-Migrate.cmd
+```
+Cập nhật sau này: `git pull` trong thư mục đó.
+
+### Trên máy mới không có Internet
+
+Không cần tải gì: bản backup do tool tạo đã **kèm sẵn bộ công cụ** trong `…\RealGuideLibrary-<ngày>\RealGuide-Migrate\`. Cắm USB, chạy `RealGuide-Migrate.cmd` từ đó — tab 3 sẽ tự điền thư mục backup.
+
+### Lỗi khi mở
+
+| Hiện tượng | Xử lý |
+|---|---|
+| "Windows protected your PC" (SmartScreen) | **More info → Run anyway**, hoặc Unblock như trên |
+| Cửa sổ nháy rồi tắt / báo *running scripts is disabled* | File `.cmd` đã dùng `-ExecutionPolicy Bypass`; nếu vẫn lỗi, chạy PowerShell **Admin**: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| Tiêu đề cửa sổ báo *KHÔNG có quyền Admin* | Đóng, chuột phải `RealGuide-Migrate.cmd` → **Run as administrator** |
+| Chữ trên giao diện thành `?` | Kiểm tra `scripts\Strings.vi.txt` còn là UTF-8 (đừng mở bằng Notepad cũ rồi Save As ANSI) |
+
+Bên trong tool còn có **Tab 5 Hướng dẫn** với quy trình chi tiết từng bước.
+
 ## Giao diện (khuyến nghị)
 
 Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
