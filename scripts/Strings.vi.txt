@@ -30,6 +30,10 @@ Tab1=  1. Backup (máy cũ)
 Tab2=  2. Thư viện có sẵn → USB  
 Tab3=  3. Máy mới: junction + khôi phục  
 Tab4=  4. Bảo trì / kiểm tra  
+Tab5=  5. Hướng dẫn  
+BtnGuideBig=Mở cửa sổ lớn để đọc
+BtnGuideEdit=Sửa nội dung (Notepad)
+GuideTitle=Hướng dẫn sử dụng RealGuide-Migrate
 
 LblDest=Thư mục đích (USB / ổ ngoài):
 BtnBrowse=Chọn...

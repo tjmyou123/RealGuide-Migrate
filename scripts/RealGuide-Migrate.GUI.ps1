@@ -68,6 +68,7 @@ $tabBackup = New-Ctl TabPage @{ Text = $S.Tab1 }; $tabs.TabPages.Add($tabBackup)
 $tabExist  = New-Ctl TabPage @{ Text = $S.Tab2 }; $tabs.TabPages.Add($tabExist)
 $tabNew    = New-Ctl TabPage @{ Text = $S.Tab3 }; $tabs.TabPages.Add($tabNew)
 $tabMaint  = New-Ctl TabPage @{ Text = $S.Tab4 }; $tabs.TabPages.Add($tabMaint)
+$tabGuide  = New-Ctl TabPage @{ Text = $S.Tab5 }; $tabs.TabPages.Add($tabGuide)
 
 # Tab 1
 New-Ctl Label @{ Text = $S.LblDest; Location = (Pt 12 16); AutoSize = $true } $tabBackup | Out-Null
@@ -113,6 +114,39 @@ $btnVerify = New-Ctl Button @{ Text = $S.BtnVerify; Location = (Pt 12 52); Size 
 $btnRepair = New-Ctl Button @{ Text = $S.BtnRepair; Location = (Pt 12 88); Size = (Sz 280 30) } $tabMaint
 $btnUndo   = New-Ctl Button @{ Text = $S.BtnUndo; Location = (Pt 12 134); Size = (Sz 380 30); ForeColor = 'Firebrick' } $tabMaint
 New-Ctl Label @{ Text = $S.HintMaint; Location = (Pt 310 16); Size = (Sz 530 110); ForeColor = 'DimGray' } $tabMaint | Out-Null
+
+# Tab 5 - Huong dan (noi dung trong Guide.vi.txt; dong bat dau '## ' = tieu de lon, '### ' = tieu de nho; dong 'Q:' hoac canh bao = do)
+function Fill-Guide {
+    param([System.Windows.Forms.RichTextBox]$Box)
+    $Box.Clear()
+    $f = Join-Path $PSScriptRoot 'Guide.vi.txt'
+    if (-not (Test-Path -LiteralPath $f)) { $Box.Text = "(Thieu file $f)"; return }
+    $h1 = New-Object System.Drawing.Font('Segoe UI', [single]12, [System.Drawing.FontStyle]::Bold)
+    $h2 = New-Object System.Drawing.Font('Segoe UI', [single]10, [System.Drawing.FontStyle]::Bold)
+    $body = New-Object System.Drawing.Font('Segoe UI', [single]9.5)
+    foreach ($line in (Get-Content -LiteralPath $f -Encoding UTF8)) {
+        if ($line -match '^## (.*)') { $Box.SelectionFont = $h1; $Box.SelectionColor = [System.Drawing.Color]::FromArgb(0, 70, 140); $Box.AppendText("`r`n$($Matches[1])`r`n") }
+        elseif ($line -match '^### (.*)') { $Box.SelectionFont = $h2; $Box.SelectionColor = [System.Drawing.Color]::FromArgb(160, 60, 0); $Box.AppendText("`r`n$($Matches[1])`r`n") }
+        else {
+            $Box.SelectionFont = $body
+            $Box.SelectionColor = if ($line -match '^\s*(Q:|\u26A0)') { [System.Drawing.Color]::DarkRed } else { [System.Drawing.Color]::Black }
+            $Box.AppendText("$line`r`n")
+        }
+    }
+    $Box.SelectionStart = 0; $Box.ScrollToCaret()
+}
+$btnGuideBig = New-Ctl Button @{ Text = $S.BtnGuideBig; Location = (Pt 8 6); Size = (Sz 200 26) } $tabGuide
+$btnGuideEdit = New-Ctl Button @{ Text = $S.BtnGuideEdit; Location = (Pt 214 6); Size = (Sz 160 26) } $tabGuide
+$rtGuide = New-Ctl RichTextBox @{ Location = (Pt 8 38); Size = (Sz 844 143); ReadOnly = $true; BackColor = 'White'; BorderStyle = 'FixedSingle'; DetectUrls = $false } $tabGuide
+$tabGuide.Add_Resize({ $rtGuide.Size = Sz ($tabGuide.ClientSize.Width - 16) ($tabGuide.ClientSize.Height - 46) })
+Fill-Guide $rtGuide
+$btnGuideBig.Add_Click({
+    $w = New-Ctl Form @{ Text = $S.GuideTitle; Size = (Sz 900 700); StartPosition = 'CenterParent'; Font = $form.Font; ShowInTaskbar = $false }
+    $rt = New-Ctl RichTextBox @{ Dock = 'Fill'; ReadOnly = $true; BackColor = 'White'; BorderStyle = 'None'; DetectUrls = $false } $w
+    Fill-Guide $rt
+    [void]$w.ShowDialog($form)
+})
+$btnGuideEdit.Add_Click({ Start-Process notepad.exe (Join-Path $PSScriptRoot 'Guide.vi.txt') })
 
 # --- Log
 $log = New-Ctl RichTextBox @{ Location = (Pt 10 426); Size = (Sz 866 240); ReadOnly = $true; BackColor = 'Black'; ForeColor = 'Gainsboro'; Font = (New-Object System.Drawing.Font('Consolas', 9)); Anchor = 'Top,Bottom,Left,Right'; WordWrap = $false; ScrollBars = 'Both' } $form
@@ -296,7 +330,13 @@ $btnBkExport.Add_Click({
     Invoke-Tool 'Export-Backup.ps1' @('-BackupPath', (Q $b), '-Destination', (Q $f)) $S.TaskExport
 })
 $btnBkOpen.Add_Click({ $b = Get-SelectedBackup; if ($b) { Start-Process explorer.exe $b } })
-$tabs.Add_SelectedIndexChanged({ if ($tabs.SelectedTab -eq $tabExist -and $lvBk.Items.Count -eq 0) { Refresh-Backups } })
+$script:TabsH = $tabs.Height
+$tabs.Add_SelectedIndexChanged({
+    if ($tabs.SelectedTab -eq $tabExist -and $lvBk.Items.Count -eq 0) { Refresh-Backups }
+    # Tab Huong dan: mo rong che vung log de doc thoai mai; roi tab thi tra lai
+    if ($tabs.SelectedTab -eq $tabGuide) { $log.Visible = $false; $tabs.Height = $log.Bottom - $tabs.Top; $rtGuide.Select(0, 0); $rtGuide.ScrollToCaret() }
+    elseif (-not $log.Visible) { $tabs.Height = $script:TabsH; $log.Visible = $true }
+})
 
 $btnSetupAll.Add_Click({
     if (-not $txtRoot.Text) { Msg $S.NoRoot $S.Missing 'Warning'; return }

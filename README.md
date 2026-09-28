@@ -16,11 +16,12 @@ Double-click **`RealGuide-Migrate.cmd`** (tự xin Admin) → cửa sổ gồm:
 - **Tab 2 Thư viện có sẵn → USB**: tự quét mọi ổ đĩa tìm các bản backup đã có (cả dạng cũ phẳng `LibraryBackup-*`), chọn 1 dòng → *Dùng cho máy mới* (điền sẵn vào Tab 3) hoặc *Copy sang USB / ổ ngoài* (sao chép nguyên backup + bộ công cụ, không backup lại từ app).
 - **Tab 3 Máy mới**: chọn nơi lưu dữ liệu + thư mục backup → *Thiết lậ p máy mới* (hoặc chỉ tạo junction / chỉ khôi phục).
 - **Tab 4 Bảo trì**: tìm đường dẫn, kiểm tra, vá sleeve, gỡ junction trước khi Uninstall.
+- **Tab 5 Hướng dẫn**: hướng dẫn đầy đủ ngay trong tool (quy trình 4 bước, giải thích junction / dạng backup, FAQ, lỗi thường gặp, dòng lệnh); tự mở rộng che vùng log để đọc, có nút mở cửa sổ lớn và sửa nội dung.
 - **Log** đen ở dưới hiện tiến trình thời gian thực; thanh chạy khi đang bậ n; mọi tác vụ nguy hiểm đều hỏi xác nhậ n.
 
 GUI chỉ là lớp vỏ gọi các script bên dưới (chạy tiến trình con, không treo cửa sổ), nên dùng dòng lệnh hay GUI đều cho kết quả như nhau.
 
-Toàn bộ chữ trên giao diện (tiếng Việt có dấu) nằm trong `scripts\Strings.vi.txt` (UTF-8, dạng `Khóa=Giá trị`, `\n` = xuống dòng). Muốn đổi câu chữ hoặc dịch sang ngôn ngữ khác chỉ cần sửa file này, không cần đụng code. Log của các script con vẫn là tiếng Việt không dấu để hiển thị đúng trên mọi console.
+Toàn bộ chữ trên giao diện (tiếng Việt có dấu) nằm trong `scripts\Strings.vi.txt` (UTF-8, dạng `Khóa=Giá trị`, `\n` = xuống dòng); nội dung tab Hướng dẫn trong `scripts\Guide.vi.txt` (dòng `## ` = tiêu đề lớn, `### ` = tiêu đề nhỏ). Muốn đổi câu chữ hoặc dịch sang ngôn ngữ khác chỉ cần sửa file này, không cần đụng code. Log của các script con vẫn là tiếng Việt không dấu để hiển thị đúng trên mọi console.
 
 ## Bố cục thư mục
 
@@ -29,7 +30,7 @@ RealGuide-Migrate\
 ├─ RealGuide-Migrate.cmd   ← FILE CHẠY CHÍNH (double-click, tự xin Admin, mở giao diện)
 ├─ README.md
 └─ scripts\                ← toàn bộ script bên dưới, không cần đụng vào
-   ├─ RealGuide-Migrate.GUI.ps1, Common.ps1, Strings.vi.txt
+   ├─ RealGuide-Migrate.GUI.ps1, Common.ps1, Strings.vi.txt, Guide.vi.txt
    ├─ Backup-Library / Setup-NewMachine / Verify-Setup / Repair-Sleeves / Find-RealGuide (.ps1 + .cmd)
    └─ Setup-Junctions.ps1, Restore-Library.ps1, Export-Backup.ps1
 ```
@@ -81,6 +82,7 @@ Script sẽ: đóng app → di chuyển dữ liệu C: hiện có sang `DataRoot
 | `Repair-Sleeves.ps1/.cmd` | Vá `.part → .stl.dec` khi báo "Polygon count is zero" |
 | `Common.ps1` | Hàm chung (tự tìm đường dẫn, bảng ánh xạ junction, robocopy, xác thực STL, copy bộ công cụ…) |
 | `Strings.vi.txt` | Chữ trên giao diện (tiếng Việt có dấu) |
+| `Guide.vi.txt` | Nội dung tab Hướng dẫn |
 
 ## Tự phát hiện đường dẫn
 

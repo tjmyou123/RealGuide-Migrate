@@ -216,7 +216,7 @@ function Copy-Tools {
     $dst = Join-Path $Destination 'RealGuide-Migrate'
     New-Item -ItemType Directory -Path (Join-Path $dst 'scripts') -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $script:ToolRoot 'RealGuide-Migrate.cmd'), (Join-Path $script:ToolRoot 'README.md') -Destination $dst -Force -ErrorAction SilentlyContinue
-    Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\Strings.*.txt" (Join-Path $dst 'scripts') -Force -ErrorAction SilentlyContinue
+    Copy-Item "$PSScriptRoot\*.ps1", "$PSScriptRoot\*.cmd", "$PSScriptRoot\*.txt" (Join-Path $dst 'scripts') -Force -ErrorAction SilentlyContinue
     return $dst
 }
 

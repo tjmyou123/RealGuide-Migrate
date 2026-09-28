@@ -1,0 +1,95 @@
+## RealGuide-Migrate là gì?
+Bộ công cụ giúp đem RealGUIDE (Zimmer Biomet / ZimVie) từ máy cũ sang máy mới mà KHÔNG mất thư viện implant/sleeve đã tải, và đưa dữ liệu ra ổ D/E thay vì để đầy ổ C.
+
+RealGUIDE ghi cứng dữ liệu vào 4 chỗ trên ổ C, không có tuỳ chọn đổi:
+  • %APPDATA%\RealguideZimmerBiomet   → thư viện implant/sleeve (~8,5 GB, tải rất lâu, một số hãng như Noris đã ngừng phát hành)
+  • %APPDATA%\RealGUIDE50-DB          → hồ sơ bệnh nhân (có thể hàng chục GB)
+  • %LOCALAPPDATA%\RealGUIDE          → cache giao diện (QML)
+  • C:\NNT                            → file cấu hình .ini
+Tool dùng "junction" (đường tắt cấp hệ thống) để RealGUIDE vẫn thấy đúng đường dẫn cũ nhưng dữ liệu thật nằm ở ổ khác.
+
+## Bảng Trạng thái (phía trên)
+Mỗi lần mở tool tự dò 4 vị trí trên và cho biết:
+  • Màu XANH  "junction → E:\..."   : đã chuyển ra ổ khác, đúng mong muốn.
+  • Màu CAM   "thư mục thật (trên C:)": còn nằm trên ổ C, chưa tạo junction.
+  • Màu XÁM   "(chưa có)"            : máy chưa cài / chưa chạy RealGUIDE lần nào.
+Nút "Làm mới" dò lại; "Mở thư mục thư viện / dữ liệu" mở Explorer đến nơi tương ứng.
+
+## QUY TRÌNH CHUYỂN MÁY — 4 BƯỚC
+
+### Bước 1 — Máy cũ: Backup (Tab 1)
+  1. Cắm USB / ổ ngoài còn trống ≥ 10 GB (nếu kèm DB bệnh nhân thì cần nhiều hơn).
+  2. Tab "1. Backup (máy cũ)" → "Chọn..." thư mục đích (VD F:\).
+  3. Tuỳ chọn:
+     • Kèm DB bệnh nhân   → mang cả hồ sơ ca sang máy mới (nặng).
+     • Kèm cấu hình máy   → mang *.ini/*.set (ngôn ngữ, tuỳ chọn hiển thị).
+     • Tự đóng RealGUIDE  → nên để bật, tránh copy file đang mở.
+  4. Bấm "BẮT ĐẦU BACKUP", theo dõi log đen bên dưới đến khi ">>> HOÀN TẤT".
+  Kết quả: F:\RealGuideLibrary-<ngày-giờ>\ gồm
+     RealguideZimmerBiomet\   (thư viện)
+     manifest.json            (thông tin bản backup)
+     RealGuide-Migrate\       (chính bộ công cụ này — máy mới không cần tải gì thêm)
+
+### Bước 2 — Đã có backup sẵn? (Tab 2)
+Nếu trước đó bạn đã backup rồi (kể cả copy tay), Tab "2. Thư viện có sẵn → USB" tự quét mọi ổ đĩa và liệt kê:
+  • "chuẩn"      : do tool tạo, có manifest.json + kèm công cụ.
+  • "cũ (phẳng)" : copy tay, thư mục stldb/stlcaddb nằm thẳng ở gốc, không có manifest. Vẫn dùng được.
+Chọn 1 dòng rồi:
+  • "Dùng cho máy mới →"        : điền sẵn vào Tab 3 (khi đang ở máy mới).
+  • "Copy sang USB / ổ ngoài..." : sao chép nguyên backup ra USB, tự chuyển dạng cũ → chuẩn và kèm công cụ.
+  • "Mở thư mục"                 : xem trong Explorer.
+
+### Bước 3 — Máy mới: cài RealGUIDE
+Chạy bộ cài gốc của hãng (Zimmer-EU-x64-…-Setup.exe), đăng nhập tài khoản. Có thể mở app 1 lần rồi đóng, hoặc không cần.
+
+### Bước 4 — Máy mới: junction + khôi phục (Tab 3)
+  1. Cắm USB backup, vào …\RealGuideLibrary-<ngày>\RealGuide-Migrate\, double-click RealGuide-Migrate.cmd (tự xin Admin).
+  2. Tab "3. Máy mới":
+     • "Nơi lưu dữ liệu"  : tool gợi ý ổ trống lớn nhất (VD D:\RealGuideData). Đổi nếu muốn.
+     • "Thư mục backup"    : tự điền vì tool đang chạy từ trong backup. Nếu trống → "Chọn...".
+     • Tick "Khôi phục DB bệnh nhân" nếu backup có kèm; "Không tạo junction" nếu muốn giữ trên C:.
+  3. Bấm "THIẾT LẬP MÁY MỚI" → xác nhận → chờ ">>> HOÀN TẤT".
+  Tool sẽ: đóng RealGUIDE → chuyển dữ liệu C: hiện có sang nơi lưu → tạo 4 junction → chép thư viện từ backup (robocopy /MIR) → vá sleeve kẹt → in báo cáo kiểm tra.
+  4. Mở RealGUIDE, vào thư viện implant kiểm tra các hãng đã có đủ.
+
+## Tab 4 — Bảo trì / kiểm tra
+  • Tìm RealGUIDE lưu ở đâu      : in ra mọi đường dẫn tool phát hiện (registry, AppData, junction, bản sao trên các ổ).
+  • Kiểm tra junction + thư viện : xác nhận 4 junction đúng đích, thư viện đủ file, không có sleeve kẹt.
+  • Vá sleeve kẹt                : khi RealGUIDE báo "Polygon count is zero" — chạy KHI app đang mở, trước khi mở ca.
+  • GỠ JUNCTION                  : đưa toàn bộ dữ liệu về lại C: và xoá junction.
+    ⚠ BẮT BUỘC làm trước khi chạy Uninstall.exe của RealGUIDE — nếu không, trình gỡ cài đặt đi xuyên qua junction và XOÁ SẠCH dữ liệu thật trên ổ D/E.
+
+## Câu hỏi thường gặp
+Q: Junction là gì, có an toàn không?
+   Là tính năng có sẵn của NTFS (mklink /J). Windows và mọi ứng dụng đều thấy thư mục như bình thường. Chỉ cần nhớ quy tắc "gỡ junction trước khi Uninstall".
+
+Q: Sao backup không lấy thư mục tmp\?
+   tmp\ chỉ chứa bản giải nén tạm mà RealGUIDE tự tạo lại từ stldb và tự xoá mỗi lần khởi động; đôi khi còn chứa file .part hỏng gây lỗi "Polygon count is zero". Tool chỉ giữ tmp\decs\*.stl.dec hoàn chỉnh (nếu có).
+
+Q: Tool có đăng thư viện lên Internet không?
+   Không. Mọi thứ chạy cục bộ; repo GitHub chỉ chứa mã nguồn công cụ, không chứa dữ liệu.
+
+Q: Backup mới nhẹ hơn backup cũ copy tay?
+   Vì bản copy tay mang theo tmp\ và file cấu hình lẻ. Thư viện thật (stldb, stlcaddb, asset_cache, *.imp/*.pin) giống nhau.
+
+Q: Có cần chạy bằng Admin?
+   Có, để tạo junction và ghi vào %APPDATA%. RealGuide-Migrate.cmd tự xin quyền. Nếu tiêu đề cửa sổ báo "KHÔNG có quyền Admin" thì đóng và mở lại qua file .cmd.
+
+Q: Máy mới tên thư mục AppData khác (build hãng khác)?
+   Tool không hardcode: đọc registry HKCU\SOFTWARE\RealGUIDE5 và dò dấu hiệu (sleeves.imp, stldb, xmlStudiesList.xml) nên vẫn nhận đúng.
+
+## Lỗi thường gặp
+  • "Polygon count is zero" khi chọn sleeve → Tab 4 → "Vá sleeve kẹt" (đang mở app), rồi chọn lại.
+  • "Thư mục backup không tồn tại" → USB chưa cắm / đường dẫn sai → "Chọn..." lại.
+  • Log báo robocopy mã ≥ 8 → thiếu dung lượng hoặc file đang bị khoá; đóng RealGUIDE, chạy lại.
+  • Junction tạo xong nhưng app không thấy thư viện → Tab 4 → "Kiểm tra", xem dòng nào WARN/ERR.
+  • Muốn quay lại như cũ → Tab 4 → "GỠ JUNCTION" (cần ổ C đủ trống).
+
+## Dòng lệnh (nâng cao)
+Mọi nút trong tool đều gọi 1 script trong thư mục scripts\; có thể chạy tay bằng PowerShell:
+  .\Backup-Library.ps1   -Destination "F:\" -CloseApp [-IncludePatientDb] [-IncludeConfig]
+  .\Setup-NewMachine.ps1 -DataRoot "D:\RealGuideData" -BackupPath "F:\RealGuideLibrary-…" [-RestorePatientDb]
+  .\Setup-Junctions.ps1  -DataRoot "D:\RealGuideData" [-Undo]
+  .\Restore-Library.ps1  -BackupPath "F:\RealGuideLibrary-…"
+  .\Verify-Setup.ps1 | .\Repair-Sleeves.ps1 | .\Find-RealGuide.ps1 -ScanDrives | .\Export-Backup.ps1 -List
+Chữ trên giao diện nằm trong scripts\Strings.vi.txt; nội dung hướng dẫn này trong scripts\Guide.vi.txt — sửa tự do.
